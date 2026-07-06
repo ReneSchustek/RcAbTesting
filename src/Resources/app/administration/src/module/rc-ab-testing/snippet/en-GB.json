@@ -1,0 +1,96 @@
+{
+    "sw-privileges": {
+        "permissions": {
+            "rc_ab_experiment": {
+                "label": "A/B Testing"
+            }
+        }
+    },
+    "rc-ab-testing": {
+        "general": {
+            "mainMenuItemGeneral": "A/B Tests",
+            "description": "Manage and evaluate storefront A/B tests"
+        },
+        "list": {
+            "cardTitle": "Experiments",
+            "columnName": "Name",
+            "columnStatus": "Status",
+            "columnTestType": "Test type",
+            "columnTraffic": "Traffic %",
+            "createButton": "New experiment",
+            "newExperimentName": "New experiment",
+            "loadError": "Experiments could not be loaded.",
+            "createError": "Experiment could not be created."
+        },
+        "detail": {
+            "baseTitle": "Base data",
+            "name": "Name",
+            "technicalKey": "Technical key",
+            "hypothesis": "Hypothesis",
+            "testType": "Test type",
+            "testTypeTwig": "Twig variant",
+            "testTypeTheme": "Theme",
+            "testTypeFeatureFlag": "Feature flag",
+            "traffic": "Traffic allocation (%)",
+            "targetSignificance": "Target significance",
+            "variantsTitle": "Variants",
+            "variantKey": "Key",
+            "variantName": "Name",
+            "variantWeight": "Weight",
+            "variantControl": "Control",
+            "addVariant": "Add variant",
+            "removeVariant": "Remove variant",
+            "winner": "Winner variant",
+            "winnerNone": "No winner selected",
+            "statsTitle": "Evaluation",
+            "refreshStats": "Refresh evaluation",
+            "assignments": "Assignments",
+            "conversions": "Conversions",
+            "rate": "Rate",
+            "evaluationTitle": "Statistical evaluation",
+            "confidenceLevel": "Confidence level",
+            "winnerResult": "Significant winner",
+            "noWinner": "No significant winner yet",
+            "srmWarning": "Warning: the observed split differs significantly from the configured weights (possible tracking/bucketing issue).",
+            "lift": "Lift",
+            "pValue": "p-value",
+            "confidenceInterval": "Variant rate CI",
+            "significance": "Significance",
+            "significantYes": "significant",
+            "significantNo": "not significant",
+            "significantBetter": "significantly better",
+            "significantWorse": "significantly worse",
+            "requiredSample": "Required sample/variant",
+            "scheduledStart": "Scheduled start",
+            "scheduledEnd": "Scheduled end",
+            "start": "Start",
+            "pause": "Pause",
+            "end": "End",
+            "archive": "Archive",
+            "save": "Save",
+            "loadError": "Experiment could not be loaded.",
+            "saveSuccess": "Experiment saved.",
+            "saveError": "Experiment could not be saved.",
+            "lifecycleSuccess": "Status updated.",
+            "lifecycleError": "Status change failed.",
+            "statsError": "Evaluation could not be loaded.",
+            "salesChannel": "Sales channel (targeting)",
+            "salesChannelHelp": "Empty = applies to all sales channels.",
+            "rule": "Rule (targeting)",
+            "ruleHelp": "Empty = no rule restriction.",
+            "variantConfig": "Config (JSON)",
+            "variantConfigHelp": "Optional JSON object, e.g. for theme/feature-flag variants.",
+            "variantConfigInvalid": "The variant config contains invalid JSON.",
+            "errors": {
+                "experimentNotFound": "Experiment not found.",
+                "onlyRunningCanBePaused": "Only running experiments can be paused.",
+                "winnerNotInExperiment": "The selected winner variant does not belong to this experiment.",
+                "onlyDoneCanBeArchived": "Only finished experiments can be archived.",
+                "tooFewVariants": "An experiment needs at least two variants.",
+                "negativeWeight": "Variant weights must not be negative.",
+                "weightSum": "The variant weights must add up to 100.",
+                "controlCount": "An experiment needs exactly one control variant."
+            }
+        }
+    }
+}

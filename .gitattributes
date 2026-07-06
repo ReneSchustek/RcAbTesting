@@ -1,0 +1,12 @@
+# Dev-/Test-Artefakte nicht ins Release-Archiv (git archive / composer archive)
+# aufnehmen. Die Installation des Plugins in Shopware braucht nur src/ +
+# composer.json + Metadaten.
+/tests                  export-ignore
+/phpunit.xml.dist       export-ignore
+/phpunit.kernel.xml.dist export-ignore
+/phpstan.neon           export-ignore
+/.php-cs-fixer.php       export-ignore
+/.editorconfig          export-ignore
+/.gitignore             export-ignore
+/.gitattributes         export-ignore
+/NOTIZEN.md              export-ignore

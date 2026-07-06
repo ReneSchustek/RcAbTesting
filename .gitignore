@@ -1,0 +1,45 @@
+# ============================================================
+# .gitignore – RcAbTesting
+# ============================================================
+
+# Secrets / Umgebungsvariablen
+.env
+.env.local
+.env.*.local
+!.env.example
+secrets.json
+*.pfx
+*.p12
+*.key
+
+# Logs
+*.log
+/logs/
+
+# PHP / Shopware
+/vendor/
+/var/
+/node_modules/
+*.phar
+*.zip
+
+# Test-Ergebnisse
+.phpunit.result.cache
+.phpunit.cache
+/coverage/
+
+# IDE
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
+
+# KI-Konfiguration und -Artefakte (niemals committen)
+NOTIZEN.md
+.gitignore-template
+
+# ============================================================
+# Interne Notizen
+# ============================================================
+brief.md
+coverage-snapshot.sh

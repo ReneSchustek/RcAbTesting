@@ -1,0 +1,34 @@
+{% block rc_ab_testing_list %}
+<sw-page class="rc-ab-testing-list">
+    {% block rc_ab_testing_list_smart_bar_header %}
+    <template #smart-bar-header>
+        <h2>{{ $tc('rc-ab-testing.general.mainMenuItemGeneral') }}</h2>
+    </template>
+    {% endblock %}
+
+    {% block rc_ab_testing_list_smart_bar_actions %}
+    <template #smart-bar-actions>
+        <sw-button variant="primary" @click="createExperiment">
+            {{ $tc('rc-ab-testing.list.createButton') }}
+        </sw-button>
+    </template>
+    {% endblock %}
+
+    {% block rc_ab_testing_list_content %}
+    <template #content>
+        <sw-card-view>
+            <sw-card :title="$tc('rc-ab-testing.list.cardTitle')" :is-loading="isLoading">
+                <sw-entity-listing
+                    v-if="experiments"
+                    :items="experiments"
+                    :repository="repository"
+                    :columns="columns"
+                    :show-selection="false"
+                    detail-route="rc.ab.testing.detail">
+                </sw-entity-listing>
+            </sw-card>
+        </sw-card-view>
+    </template>
+    {% endblock %}
+</sw-page>
+{% endblock %}
