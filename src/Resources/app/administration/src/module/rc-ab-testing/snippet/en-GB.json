@@ -31,6 +31,7 @@
             "testTypeTwig": "Twig variant",
             "testTypeTheme": "Theme",
             "testTypeFeatureFlag": "Feature flag",
+            "testTypeCms": "CMS page",
             "traffic": "Traffic allocation (%)",
             "targetSignificance": "Target significance",
             "variantsTitle": "Variants",
@@ -61,6 +62,11 @@
             "significantBetter": "significantly better",
             "significantWorse": "significantly worse",
             "requiredSample": "Required sample/variant",
+            "recTitle": "Recommendation",
+            "recBetter": "Variant {variant} is significantly better — safe to roll out.",
+            "recWorse": "Variant {variant} is significantly worse — do not roll out.",
+            "recNoDifference": "Variant {variant}: no measurable difference from the control.",
+            "recNotEnoughData": "Variant {variant}: not enough data yet ({current} of {required} assignments per variant needed).",
             "scheduledStart": "Scheduled start",
             "scheduledEnd": "Scheduled end",
             "start": "Start",
@@ -81,6 +87,8 @@
             "variantConfig": "Config (JSON)",
             "variantConfigHelp": "Optional JSON object, e.g. for theme/feature-flag variants.",
             "variantConfigInvalid": "The variant config contains invalid JSON.",
+            "variantCmsPagePlaceholder": "Select CMS page …",
+            "variantCmsPageHelp": "The CMS page (Shopping Experience) delivered for this variant. Control = the page currently served live.",
             "errors": {
                 "experimentNotFound": "Experiment not found.",
                 "onlyRunningCanBePaused": "Only running experiments can be paused.",
@@ -89,7 +97,8 @@
                 "tooFewVariants": "An experiment needs at least two variants.",
                 "negativeWeight": "Variant weights must not be negative.",
                 "weightSum": "The variant weights must add up to 100.",
-                "controlCount": "An experiment needs exactly one control variant."
+                "controlCount": "An experiment needs exactly one control variant.",
+                "cmsPageMissing": "In a CMS page test every variant needs a selected CMS page."
             }
         }
     }

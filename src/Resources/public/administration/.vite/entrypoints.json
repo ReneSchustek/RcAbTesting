@@ -1,0 +1,23 @@
+{
+  "base": "/bundles/rcabtesting/administration/",
+  "entryPoints": {
+    "rc-ab-testing": {
+      "css": [],
+      "dynamic": [],
+      "js": [
+        "/bundles/rcabtesting/administration/assets/rc-ab-testing-BuFwY1Q9.js"
+      ],
+      "legacy": false,
+      "preload": []
+    }
+  },
+  "legacy": false,
+  "metadatas": {},
+  "version": [
+    "7.1.0",
+    7,
+    1,
+    0
+  ],
+  "viteServer": null
+}

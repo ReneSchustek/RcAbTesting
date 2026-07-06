@@ -54,7 +54,63 @@ Component.register('rc-ab-testing-detail', {
                 { value: 'twig', label: this.$tc('rc-ab-testing.detail.testTypeTwig') },
                 { value: 'theme', label: this.$tc('rc-ab-testing.detail.testTypeTheme') },
                 { value: 'feature_flag', label: this.$tc('rc-ab-testing.detail.testTypeFeatureFlag') },
+                { value: 'cms_page', label: this.$tc('rc-ab-testing.detail.testTypeCms') },
             ];
+        },
+
+        // Beim CMS-Seiten-Test waehlt der Betreuer je Variante eine CMS-Seite per
+        // Dropdown statt Roh-JSON — die Config traegt dann nur `cmsPageId`.
+        isCmsTest() {
+            return this.experiment ? this.experiment.testType === 'cms_page' : false;
+        },
+
+        // Uebersetzt die Statistik je Variante in einen Klartext-Satz mit
+        // Handlungsempfehlung — fuer Nicht-Techniker, die keine p-Values lesen.
+        // Nutzt ausschliesslich die bereits geladenen stats/evaluation-Daten.
+        plainRecommendations() {
+            if (!this.evaluation || !this.stats) {
+                return [];
+            }
+
+            const assignmentsByKey = {};
+            this.stats.forEach((row) => { assignmentsByKey[row.technicalKey] = row.assignments; });
+            const controlAssignments = assignmentsByKey[this.evaluation.controlKey] || 0;
+
+            return (this.evaluation.comparisons || []).map((comparison) => {
+                const variantAssignments = assignmentsByKey[comparison.variantKey] || 0;
+                const required = comparison.requiredSamplePerVariant || 0;
+                const enoughData = required > 0 && controlAssignments >= required && variantAssignments >= required;
+
+                if (comparison.significant) {
+                    const worse = comparison.lift !== null && comparison.lift < 0;
+                    return {
+                        key: comparison.variantKey,
+                        variant: worse ? 'error' : 'success',
+                        text: this.$t(
+                            worse ? 'rc-ab-testing.detail.recWorse' : 'rc-ab-testing.detail.recBetter',
+                            { variant: comparison.variantKey },
+                        ),
+                    };
+                }
+
+                if (enoughData) {
+                    return {
+                        key: comparison.variantKey,
+                        variant: 'info',
+                        text: this.$t('rc-ab-testing.detail.recNoDifference', { variant: comparison.variantKey }),
+                    };
+                }
+
+                return {
+                    key: comparison.variantKey,
+                    variant: 'info',
+                    text: this.$t('rc-ab-testing.detail.recNotEnoughData', {
+                        variant: comparison.variantKey,
+                        current: variantAssignments,
+                        required: required || '?',
+                    }),
+                };
+            });
         },
 
         variantColumns() {
@@ -156,10 +212,55 @@ Component.register('rc-ab-testing-detail', {
             variant.isControl = this.experiment.variants.length === 0;
             this.variantConfigDrafts[variant.id] = '';
             this.experiment.variants.add(variant);
+            // Standard: Gewichte gleichmaessig verteilen (zwei Varianten => 50:50),
+            // damit ohne manuelles Zutun ein ausgewogener Test entsteht. Wer eine
+            // andere Aufteilung will, editiert die Gewichte danach frei.
+            this.distributeWeightsEvenly();
+        },
+
+        // Verteilt die Varianten-Gewichte gleichmaessig auf Summe 100. Rest-Punkte
+        // (z. B. 100/3) gehen an die ersten Varianten, damit die Summe exakt 100
+        // bleibt und die Start-Integritaetspruefung nicht anschlaegt.
+        distributeWeightsEvenly() {
+            const variants = this.experiment.variants;
+            const count = variants.length;
+            if (count === 0) {
+                return;
+            }
+
+            const base = Math.floor(100 / count);
+            let remainder = 100 - (base * count);
+            variants.forEach((variant) => {
+                variant.weight = base + (remainder > 0 ? 1 : 0);
+                if (remainder > 0) {
+                    remainder -= 1;
+                }
+            });
         },
 
         setVariantConfigDraft(variantId, value) {
             this.variantConfigDrafts = { ...this.variantConfigDrafts, [variantId]: value };
+        },
+
+        // CMS-Seiten-Picker: liest/schreibt die cmsPageId ueber den vorhandenen
+        // Config-Draft-Mechanismus (JSON), damit der Save-Pfad (applyVariantConfigDrafts)
+        // unveraendert bleibt — die Variante speichert dann `config = { cmsPageId }`.
+        variantCmsPageId(variant) {
+            const draft = (this.variantConfigDrafts[variant.id] || '').trim();
+            if (draft !== '') {
+                try {
+                    const parsed = JSON.parse(draft);
+                    return parsed && parsed.cmsPageId ? parsed.cmsPageId : null;
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            return variant.config && variant.config.cmsPageId ? variant.config.cmsPageId : null;
+        },
+
+        setVariantCmsPageId(variant, cmsPageId) {
+            this.setVariantConfigDraft(variant.id, cmsPageId ? JSON.stringify({ cmsPageId }) : '');
         },
 
         // Wendet die JSON-Config-Entwürfe auf die Varianten an. Liefert false und
@@ -191,6 +292,8 @@ Component.register('rc-ab-testing-detail', {
                 this.deletedVariantIds.push(variant.id);
             }
             this.experiment.variants.remove(variant.id);
+            // Nach dem Entfernen die Gewichte wieder gleichmaessig auf 100 bringen.
+            this.distributeWeightsEvenly();
         },
 
         async onSave() {
