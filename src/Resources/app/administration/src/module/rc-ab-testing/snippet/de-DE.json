@@ -1,0 +1,96 @@
+{
+    "sw-privileges": {
+        "permissions": {
+            "rc_ab_experiment": {
+                "label": "A/B Tests"
+            }
+        }
+    },
+    "rc-ab-testing": {
+        "general": {
+            "mainMenuItemGeneral": "A/B Tests",
+            "description": "A/B-Tests für die Storefront verwalten und auswerten"
+        },
+        "list": {
+            "cardTitle": "Experimente",
+            "columnName": "Name",
+            "columnStatus": "Status",
+            "columnTestType": "Test-Typ",
+            "columnTraffic": "Traffic %",
+            "createButton": "Neues Experiment",
+            "newExperimentName": "Neues Experiment",
+            "loadError": "Experimente konnten nicht geladen werden.",
+            "createError": "Experiment konnte nicht angelegt werden."
+        },
+        "detail": {
+            "baseTitle": "Basisdaten",
+            "name": "Name",
+            "technicalKey": "Technischer Schlüssel",
+            "hypothesis": "Hypothese",
+            "testType": "Test-Typ",
+            "testTypeTwig": "Twig-Variante",
+            "testTypeTheme": "Theme",
+            "testTypeFeatureFlag": "Feature-Flag",
+            "traffic": "Traffic-Anteil (%)",
+            "targetSignificance": "Ziel-Signifikanz",
+            "variantsTitle": "Varianten",
+            "variantKey": "Schlüssel",
+            "variantName": "Name",
+            "variantWeight": "Gewicht",
+            "variantControl": "Control",
+            "addVariant": "Variante hinzufügen",
+            "removeVariant": "Variante entfernen",
+            "winner": "Gewinner-Variante",
+            "winnerNone": "Kein Gewinner gewählt",
+            "statsTitle": "Auswertung",
+            "refreshStats": "Auswertung aktualisieren",
+            "assignments": "Zuordnungen",
+            "conversions": "Conversions",
+            "rate": "Rate",
+            "evaluationTitle": "Statistische Auswertung",
+            "confidenceLevel": "Konfidenzniveau",
+            "winnerResult": "Signifikanter Gewinner",
+            "noWinner": "Noch kein signifikanter Gewinner",
+            "srmWarning": "Warnung: Die beobachtete Verteilung weicht deutlich von den Gewichten ab (mögliches Tracking-/Bucketing-Problem).",
+            "lift": "Lift",
+            "pValue": "p-Value",
+            "confidenceInterval": "KI der Variantenrate",
+            "significance": "Signifikanz",
+            "significantYes": "signifikant",
+            "significantNo": "nicht signifikant",
+            "significantBetter": "signifikant besser",
+            "significantWorse": "signifikant schlechter",
+            "requiredSample": "Benötigte Fallzahl/Variante",
+            "scheduledStart": "Geplanter Start",
+            "scheduledEnd": "Geplantes Ende",
+            "start": "Starten",
+            "pause": "Pausieren",
+            "end": "Beenden",
+            "archive": "Archivieren",
+            "save": "Speichern",
+            "loadError": "Experiment konnte nicht geladen werden.",
+            "saveSuccess": "Experiment gespeichert.",
+            "saveError": "Experiment konnte nicht gespeichert werden.",
+            "lifecycleSuccess": "Status aktualisiert.",
+            "lifecycleError": "Statuswechsel fehlgeschlagen.",
+            "statsError": "Auswertung konnte nicht geladen werden.",
+            "salesChannel": "Verkaufskanal (Targeting)",
+            "salesChannelHelp": "Leer = gilt für alle Verkaufskanäle.",
+            "rule": "Regel (Targeting)",
+            "ruleHelp": "Leer = keine Regel-Einschränkung.",
+            "variantConfig": "Config (JSON)",
+            "variantConfigHelp": "Optionales JSON-Objekt, z. B. für Theme-/Feature-Flag-Varianten.",
+            "variantConfigInvalid": "Die Varianten-Config enthält ungültiges JSON.",
+            "errors": {
+                "experimentNotFound": "Experiment nicht gefunden.",
+                "onlyRunningCanBePaused": "Nur laufende Experimente können pausiert werden.",
+                "winnerNotInExperiment": "Die gewählte Gewinner-Variante gehört nicht zum Experiment.",
+                "onlyDoneCanBeArchived": "Nur beendete Experimente können archiviert werden.",
+                "tooFewVariants": "Ein Experiment braucht mindestens zwei Varianten.",
+                "negativeWeight": "Varianten-Gewichte dürfen nicht negativ sein.",
+                "weightSum": "Die Varianten-Gewichte müssen zusammen 100 ergeben.",
+                "controlCount": "Ein Experiment braucht genau eine Control-Variante."
+            }
+        }
+    }
+}

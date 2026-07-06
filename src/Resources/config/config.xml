@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
+
+    <card>
+        <title>Consent</title>
+        <title lang="de-DE">Einwilligung</title>
+
+        <input-field type="text">
+            <name>consentCookieName</name>
+            <label>Consent cookie name</label>
+            <label lang="de-DE">Name des Consent-Cookies</label>
+            <helpText>If a consent manager cookie is configured here, opt-in applies: the visitor cookie is only set with explicit consent. Empty = opt-out fallback.</helpText>
+            <helpText lang="de-DE">Ist hier ein Cookie des Consent-Managers hinterlegt, gilt Opt-in: der Besucher-Cookie wird nur bei ausdrücklicher Einwilligung gesetzt. Leer = Opt-out-Fallback.</helpText>
+        </input-field>
+
+        <input-field type="text">
+            <name>consentGrantedValue</name>
+            <label>Granted cookie value</label>
+            <label lang="de-DE">Cookie-Wert für „erteilt"</label>
+            <defaultValue>1</defaultValue>
+        </input-field>
+    </card>
+
+    <card>
+        <title>Cart abandonment</title>
+        <title lang="de-DE">Warenkorb-Abbruch</title>
+
+        <input-field type="int">
+            <name>cartAbandonmentMinutes</name>
+            <label>Abandonment threshold (minutes)</label>
+            <label lang="de-DE">Abbruch-Frist (Minuten)</label>
+            <defaultValue>30</defaultValue>
+            <min>1</min>
+        </input-field>
+    </card>
+
+    <card>
+        <title>Data retention (GDPR)</title>
+        <title lang="de-DE">Datenaufbewahrung (DSGVO)</title>
+
+        <input-field type="int">
+            <name>dataRetentionDays</name>
+            <label>Retention period (days)</label>
+            <label lang="de-DE">Aufbewahrungsfrist (Tage)</label>
+            <helpText>After this period the visitor and customer reference in A/B assignments and events is anonymised (visitor_id hashed, customer_id removed). 0 disables automatic anonymisation.</helpText>
+            <helpText lang="de-DE">Nach Ablauf dieser Frist werden Besucher- und Kundenbezug in A/B-Zuordnungen und -Events anonymisiert (visitor_id gehasht, customer_id entfernt). 0 schaltet die automatische Anonymisierung ab.</helpText>
+            <defaultValue>90</defaultValue>
+            <min>0</min>
+        </input-field>
+    </card>
+</config>

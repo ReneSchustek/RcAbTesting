@@ -1,0 +1,187 @@
+{% block rc_ab_testing_detail %}
+<sw-page class="rc-ab-testing-detail">
+    {% block rc_ab_testing_detail_smart_bar_header %}
+    <template #smart-bar-header>
+        <h2 v-if="experiment">{{ experiment.name }}</h2>
+    </template>
+    {% endblock %}
+
+    {% block rc_ab_testing_detail_smart_bar_actions %}
+    <template #smart-bar-actions>
+        <sw-button :disabled="!canEdit || !canStart" @click="runLifecycle('start')">{{ $tc('rc-ab-testing.detail.start') }}</sw-button>
+        <sw-button :disabled="!canEdit || !canPause" @click="runLifecycle('pause')">{{ $tc('rc-ab-testing.detail.pause') }}</sw-button>
+        <sw-button :disabled="!canEdit || !canEnd" @click="runLifecycle('end')">{{ $tc('rc-ab-testing.detail.end') }}</sw-button>
+        <sw-button :disabled="!canEdit || !canArchive" @click="runLifecycle('archive')">{{ $tc('rc-ab-testing.detail.archive') }}</sw-button>
+        <sw-button variant="primary" :disabled="!canEdit" :is-loading="isSaving" @click="onSave">
+            {{ $tc('rc-ab-testing.detail.save') }}
+        </sw-button>
+    </template>
+    {% endblock %}
+
+    {% block rc_ab_testing_detail_content %}
+    <template #content>
+        <sw-card-view v-if="experiment">
+            {% block rc_ab_testing_detail_card_base %}
+            <sw-card :title="$tc('rc-ab-testing.detail.baseTitle')" :is-loading="isLoading">
+                <sw-text-field v-model:value="experiment.name" :label="$tc('rc-ab-testing.detail.name')"></sw-text-field>
+                <sw-text-field v-model:value="experiment.technicalKey" :label="$tc('rc-ab-testing.detail.technicalKey')"></sw-text-field>
+                <sw-textarea-field v-model:value="experiment.hypothesis" :label="$tc('rc-ab-testing.detail.hypothesis')"></sw-textarea-field>
+                <sw-single-select
+                    v-model:value="experiment.testType"
+                    :options="testTypeOptions"
+                    :label="$tc('rc-ab-testing.detail.testType')">
+                </sw-single-select>
+                <sw-number-field
+                    v-model:value="experiment.trafficAllocationPct"
+                    :label="$tc('rc-ab-testing.detail.traffic')"
+                    :min="0"
+                    :max="100">
+                </sw-number-field>
+                <sw-number-field
+                    v-model:value="experiment.targetSignificance"
+                    :label="$tc('rc-ab-testing.detail.targetSignificance')"
+                    :digits="3"
+                    :step="0.01">
+                </sw-number-field>
+                {% block rc_ab_testing_detail_card_base_targeting %}
+                <sw-entity-single-select
+                    v-model:value="experiment.salesChannelId"
+                    entity="sales_channel"
+                    show-clearable-button
+                    :label="$tc('rc-ab-testing.detail.salesChannel')"
+                    :help-text="$tc('rc-ab-testing.detail.salesChannelHelp')">
+                </sw-entity-single-select>
+                <sw-entity-single-select
+                    v-model:value="experiment.ruleId"
+                    entity="rule"
+                    show-clearable-button
+                    :label="$tc('rc-ab-testing.detail.rule')"
+                    :help-text="$tc('rc-ab-testing.detail.ruleHelp')">
+                </sw-entity-single-select>
+                {% endblock %}
+                {% block rc_ab_testing_detail_card_base_scheduling %}
+                <sw-datepicker
+                    v-model:value="experiment.scheduledStartAt"
+                    date-type="datetime"
+                    :label="$tc('rc-ab-testing.detail.scheduledStart')">
+                </sw-datepicker>
+                <sw-datepicker
+                    v-model:value="experiment.scheduledEndAt"
+                    date-type="datetime"
+                    :label="$tc('rc-ab-testing.detail.scheduledEnd')">
+                </sw-datepicker>
+                {% endblock %}
+            </sw-card>
+            {% endblock %}
+
+            {% block rc_ab_testing_detail_card_variants %}
+            <sw-card :title="$tc('rc-ab-testing.detail.variantsTitle')">
+                <sw-data-grid
+                    v-if="experiment.variants"
+                    :data-source="experiment.variants"
+                    :columns="variantColumns"
+                    :show-selection="false"
+                    :show-actions="true">
+                    <template #column-technicalKey="{ item }">
+                        <sw-text-field v-model:value="item.technicalKey"></sw-text-field>
+                    </template>
+                    <template #column-name="{ item }">
+                        <sw-text-field v-model:value="item.name"></sw-text-field>
+                    </template>
+                    <template #column-weight="{ item }">
+                        <sw-number-field v-model:value="item.weight" :digits="0" :min="0"></sw-number-field>
+                    </template>
+                    <template #column-isControl="{ item }">
+                        <sw-checkbox-field v-model:value="item.isControl"></sw-checkbox-field>
+                    </template>
+                    <template #column-config="{ item }">
+                        <sw-text-field
+                            :value="variantConfigDrafts[item.id]"
+                            placeholder="{ }"
+                            :help-text="$tc('rc-ab-testing.detail.variantConfigHelp')"
+                            @update:value="value => setVariantConfigDraft(item.id, value)">
+                        </sw-text-field>
+                    </template>
+                    <template #actions="{ item }">
+                        <sw-context-menu-item variant="danger" @click="removeVariant(item)">
+                            {{ $tc('rc-ab-testing.detail.removeVariant') }}
+                        </sw-context-menu-item>
+                    </template>
+                </sw-data-grid>
+                <sw-button class="rc-ab-testing-detail__add-variant" @click="addVariant">
+                    {{ $tc('rc-ab-testing.detail.addVariant') }}
+                </sw-button>
+            </sw-card>
+            {% endblock %}
+
+            {% block rc_ab_testing_detail_card_stats %}
+            <sw-card :title="$tc('rc-ab-testing.detail.statsTitle')">
+                {% block rc_ab_testing_detail_card_stats_winner %}
+                <sw-single-select
+                    v-model:value="winnerVariantId"
+                    :options="variantOptions"
+                    :placeholder="$tc('rc-ab-testing.detail.winnerNone')"
+                    :label="$tc('rc-ab-testing.detail.winner')">
+                </sw-single-select>
+                {% endblock %}
+                <sw-button @click="loadStats">{{ $tc('rc-ab-testing.detail.refreshStats') }}</sw-button>
+                <sw-data-grid
+                    v-if="stats"
+                    class="rc-ab-testing-detail__stats"
+                    :data-source="stats"
+                    :columns="[
+                        { property: 'technicalKey', label: $tc('rc-ab-testing.detail.variantKey') },
+                        { property: 'assignments', label: $tc('rc-ab-testing.detail.assignments') },
+                        { property: 'conversions', label: $tc('rc-ab-testing.detail.conversions') },
+                        { property: 'rate', label: $tc('rc-ab-testing.detail.rate') },
+                    ]"
+                    :show-selection="false"
+                    :show-actions="false">
+                    <template #column-rate="{ item }">
+                        {{ formatRate(item.rate) }}
+                    </template>
+                </sw-data-grid>
+
+                {% block rc_ab_testing_detail_card_stats_evaluation %}
+                <div v-if="evaluation" class="rc-ab-testing-detail__evaluation">
+                    <h3>{{ $tc('rc-ab-testing.detail.evaluationTitle') }}</h3>
+                    <p>{{ $tc('rc-ab-testing.detail.confidenceLevel') }}: {{ (evaluation.confidenceLevel * 100).toFixed(1) }} %</p>
+
+                    <sw-alert v-if="evaluation.winnerKey" variant="success">
+                        {{ $tc('rc-ab-testing.detail.winnerResult') }}: {{ evaluation.winnerKey }}
+                    </sw-alert>
+                    <sw-alert v-else variant="info">
+                        {{ $tc('rc-ab-testing.detail.noWinner') }}
+                    </sw-alert>
+
+                    <sw-alert v-if="evaluation.sampleRatioMismatch === true" variant="warning">
+                        {{ $tc('rc-ab-testing.detail.srmWarning') }}
+                    </sw-alert>
+
+                    <sw-data-grid
+                        v-if="evaluation.comparisons.length"
+                        :data-source="evaluation.comparisons"
+                        :columns="[
+                            { property: 'variantKey', label: $tc('rc-ab-testing.detail.variantKey') },
+                            { property: 'lift', label: $tc('rc-ab-testing.detail.lift') },
+                            { property: 'pValue', label: $tc('rc-ab-testing.detail.pValue') },
+                            { property: 'ci', label: $tc('rc-ab-testing.detail.confidenceInterval') },
+                            { property: 'significant', label: $tc('rc-ab-testing.detail.significance') },
+                            { property: 'requiredSamplePerVariant', label: $tc('rc-ab-testing.detail.requiredSample') },
+                        ]"
+                        :show-selection="false"
+                        :show-actions="false">
+                        <template #column-lift="{ item }">{{ formatLift(item.lift) }}</template>
+                        <template #column-pValue="{ item }">{{ formatPValue(item.pValue) }}</template>
+                        <template #column-ci="{ item }">{{ formatInterval(item) }}</template>
+                        <template #column-significant="{ item }">{{ significanceLabel(item) }}</template>
+                    </sw-data-grid>
+                </div>
+                {% endblock %}
+            </sw-card>
+            {% endblock %}
+        </sw-card-view>
+    </template>
+    {% endblock %}
+</sw-page>
+{% endblock %}
