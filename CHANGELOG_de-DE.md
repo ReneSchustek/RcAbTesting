@@ -1,5 +1,11 @@
 # Changelog (DE)
 
+## [1.4.0] - 2026-07-06
+
+### Auswertung
+
+- **Umsatz je Variante:** Die Auswertung weist jetzt zusaetzlich zur Conversion-Rate den **Umsatz**, den **durchschnittlichen Bestellwert** (Ø Bestellwert) und den **Umsatz pro Besucher** je Variante aus. Der Umsatz kommt aus dem beim Kauf mitgetrackten Bestellwert. Damit sieht man, ob eine Variante nicht nur oefter, sondern auch **wertvoller** verkauft — die Kennzahl, auf die Entscheider im E-Commerce handeln (eine Variante kann oefter konvertieren, aber bei kleinerem Warenkorb weniger Umsatz bringen).
+
 ## [1.3.0] - 2026-07-06
 
 

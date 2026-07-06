@@ -144,11 +144,23 @@
                         { property: 'assignments', label: $tc('rc-ab-testing.detail.assignments') },
                         { property: 'conversions', label: $tc('rc-ab-testing.detail.conversions') },
                         { property: 'rate', label: $tc('rc-ab-testing.detail.rate') },
+                        { property: 'revenue', label: $tc('rc-ab-testing.detail.revenue') },
+                        { property: 'aov', label: $tc('rc-ab-testing.detail.aov') },
+                        { property: 'revenuePerVisitor', label: $tc('rc-ab-testing.detail.revenuePerVisitor') },
                     ]"
                     :show-selection="false"
                     :show-actions="false">
                     <template #column-rate="{ item }">
                         {{ formatRate(item.rate) }}
+                    </template>
+                    <template #column-revenue="{ item }">
+                        {{ formatCurrency(item.revenue) }}
+                    </template>
+                    <template #column-aov="{ item }">
+                        {{ formatCurrency(item.aov) }}
+                    </template>
+                    <template #column-revenuePerVisitor="{ item }">
+                        {{ formatCurrency(item.revenuePerVisitor) }}
                     </template>
                 </sw-data-grid>
 
