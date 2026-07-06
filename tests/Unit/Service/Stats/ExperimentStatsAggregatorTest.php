@@ -29,7 +29,39 @@ final class ExperimentStatsAggregatorTest extends TestCase
 
         $stats = $aggregator->aggregate($this->experiment(), Context::createDefaultContext());
 
-        self::assertSame(['assignments' => 100, 'conversions' => 3], $stats[self::VARIANT_ID]);
+        // Der Stub liefert denselben Wert fuer alle fetchOne-Abfragen (Conversions,
+        // Bestellungen, Umsatz) — hier geht es nur um die Assignment-/Conversion-Basis.
+        self::assertSame(
+            ['assignments' => 100, 'conversions' => 3, 'orders' => 3, 'revenue' => 3.0],
+            $stats[self::VARIANT_ID],
+        );
+    }
+
+    public function testAggregatesOrdersAndRevenuePerVariant(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willReturnCallback(static function (string $sql): int|string {
+            if (str_contains($sql, 'COUNT(DISTINCT')) {
+                return 5; // konvertierende Besucher
+            }
+            if (str_contains($sql, 'COUNT(*)')) {
+                return 8; // Bestellungen (Events)
+            }
+            if (str_contains($sql, 'SUM(event_value)')) {
+                return '1234.5000'; // Umsatz
+            }
+
+            return 0;
+        });
+
+        $aggregator = new ExperimentStatsAggregator($this->assignmentRepository(100), $connection);
+
+        $stats = $aggregator->aggregate($this->experiment(), Context::createDefaultContext());
+
+        self::assertSame(
+            ['assignments' => 100, 'conversions' => 5, 'orders' => 8, 'revenue' => 1234.5],
+            $stats[self::VARIANT_ID],
+        );
     }
 
     public function testConversionsAreClampedToAssignments(): void
@@ -42,7 +74,10 @@ final class ExperimentStatsAggregatorTest extends TestCase
 
         $stats = $aggregator->aggregate($this->experiment(), Context::createDefaultContext());
 
-        self::assertSame(['assignments' => 2, 'conversions' => 2], $stats[self::VARIANT_ID]);
+        self::assertSame(
+            ['assignments' => 2, 'conversions' => 2, 'orders' => 4, 'revenue' => 4.0],
+            $stats[self::VARIANT_ID],
+        );
     }
 
     private function assignmentRepository(int $total): EntityRepository

@@ -366,6 +366,17 @@ Component.register('rc-ab-testing-detail', {
             return rate === null ? '–' : `${(rate * 100).toFixed(2)} %`;
         },
 
+        // Bewusst simples Euro-Format: die Shop-Waehrung liegt auf der
+        // Auswertungs-Detailseite nicht direkt vor; fuer die Entscheider-Ansicht
+        // reicht ein einheitlicher 2-Nachkommastellen-Betrag.
+        formatCurrency(value) {
+            if (value === null || value === undefined) {
+                return '–';
+            }
+
+            return `${value.toFixed(2)} €`;
+        },
+
         formatLift(lift) {
             if (lift === null || lift === undefined) {
                 return '–';

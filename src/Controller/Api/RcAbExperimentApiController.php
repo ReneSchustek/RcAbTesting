@@ -56,7 +56,7 @@ final class RcAbExperimentApiController
         $stats = $this->statsAggregator->aggregate($experiment, $context);
         $variants = [];
         foreach ($this->variants($experiment) as $variant) {
-            $variantStats = $stats[$variant->getId()] ?? ['assignments' => 0, 'conversions' => 0];
+            $variantStats = $stats[$variant->getId()] ?? ['assignments' => 0, 'conversions' => 0, 'orders' => 0, 'revenue' => 0.0];
             $variants[] = [
                 'id' => $variant->getId(),
                 'technicalKey' => $variant->getTechnicalKey(),
@@ -64,6 +64,13 @@ final class RcAbExperimentApiController
                 'assignments' => $variantStats['assignments'],
                 'conversions' => $variantStats['conversions'],
                 'rate' => $variantStats['assignments'] > 0 ? $variantStats['conversions'] / $variantStats['assignments'] : null,
+                'orders' => $variantStats['orders'],
+                'revenue' => $variantStats['revenue'],
+                // Durchschnittlicher Bestellwert (Umsatz / Bestellungen).
+                'aov' => $variantStats['orders'] > 0 ? $variantStats['revenue'] / $variantStats['orders'] : null,
+                // Umsatz je Besucher — die A/B-Kennzahl, die Conversion UND Bestellwert
+                // zugleich erfasst (Umsatz / Zuordnungen).
+                'revenuePerVisitor' => $variantStats['assignments'] > 0 ? $variantStats['revenue'] / $variantStats['assignments'] : null,
             ];
         }
 

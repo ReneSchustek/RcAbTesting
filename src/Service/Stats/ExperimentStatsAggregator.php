@@ -34,7 +34,7 @@ final class ExperimentStatsAggregator
     }
 
     /**
-     * @return array<string, array{assignments: int, conversions: int}>
+     * @return array<string, array{assignments: int, conversions: int, orders: int, revenue: float}>
      */
     public function aggregate(AbExperimentEntity $experiment, Context $context): array
     {
@@ -47,6 +47,11 @@ final class ExperimentStatsAggregator
             $stats[$variant->getId()] = [
                 'assignments' => $assignments,
                 'conversions' => \min($conversions, $assignments),
+                // Bestellungen zaehlen Events (ein Besucher kann mehrfach kaufen) —
+                // Basis fuer den durchschnittlichen Bestellwert; Umsatz = Summe der
+                // mitgetrackten Bestellwerte (event_value).
+                'orders' => $this->countOrders($experiment->getId(), $variant->getId(), $primaryMetric),
+                'revenue' => $this->sumRevenue($experiment->getId(), $variant->getId(), $primaryMetric),
             ];
         }
 
@@ -86,6 +91,49 @@ final class ExperimentStatsAggregator
         );
 
         return (int) $count;
+    }
+
+    /**
+     * Anzahl der Bestell-Events (nicht distinct) — Nenner fuer den
+     * durchschnittlichen Bestellwert.
+     */
+    private function countOrders(string $experimentId, string $variantId, string $eventType): int
+    {
+        $count = $this->connection->fetchOne(
+            'SELECT COUNT(*)
+             FROM rc_ab_event
+             WHERE experiment_id = :experimentId
+               AND variant_id = :variantId
+               AND event_type = :eventType',
+            [
+                'experimentId' => Uuid::fromHexToBytes($experimentId),
+                'variantId' => Uuid::fromHexToBytes($variantId),
+                'eventType' => $eventType,
+            ],
+        );
+
+        return (int) $count;
+    }
+
+    /**
+     * Summe der mitgetrackten Bestellwerte (event_value) — der Umsatz je Variante.
+     */
+    private function sumRevenue(string $experimentId, string $variantId, string $eventType): float
+    {
+        $sum = $this->connection->fetchOne(
+            'SELECT COALESCE(SUM(event_value), 0)
+             FROM rc_ab_event
+             WHERE experiment_id = :experimentId
+               AND variant_id = :variantId
+               AND event_type = :eventType',
+            [
+                'experimentId' => Uuid::fromHexToBytes($experimentId),
+                'variantId' => Uuid::fromHexToBytes($variantId),
+                'eventType' => $eventType,
+            ],
+        );
+
+        return (float) $sum;
     }
 
     /**
