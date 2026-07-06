@@ -95,7 +95,17 @@
                         <sw-checkbox-field v-model:value="item.isControl"></sw-checkbox-field>
                     </template>
                     <template #column-config="{ item }">
+                        <sw-entity-single-select
+                            v-if="isCmsTest"
+                            entity="cms_page"
+                            :value="variantCmsPageId(item)"
+                            show-clearable-button
+                            :placeholder="$tc('rc-ab-testing.detail.variantCmsPagePlaceholder')"
+                            :help-text="$tc('rc-ab-testing.detail.variantCmsPageHelp')"
+                            @update:value="value => setVariantCmsPageId(item, value)">
+                        </sw-entity-single-select>
                         <sw-text-field
+                            v-else
                             :value="variantConfigDrafts[item.id]"
                             placeholder="{ }"
                             :help-text="$tc('rc-ab-testing.detail.variantConfigHelp')"
@@ -176,6 +186,18 @@
                         <template #column-ci="{ item }">{{ formatInterval(item) }}</template>
                         <template #column-significant="{ item }">{{ significanceLabel(item) }}</template>
                     </sw-data-grid>
+
+                    {% block rc_ab_testing_detail_card_stats_recommendation %}
+                    <div v-if="plainRecommendations.length" class="rc-ab-testing-detail__recommendation">
+                        <h3>{{ $tc('rc-ab-testing.detail.recTitle') }}</h3>
+                        <sw-alert
+                            v-for="rec in plainRecommendations"
+                            :key="rec.key"
+                            :variant="rec.variant">
+                            {{ rec.text }}
+                        </sw-alert>
+                    </div>
+                    {% endblock %}
                 </div>
                 {% endblock %}
             </sw-card>

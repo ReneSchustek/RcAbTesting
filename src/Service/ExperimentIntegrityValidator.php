@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAbTesting\Service;
 
 use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentEntity;
+use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentTestType;
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
 
 /**
@@ -24,12 +25,14 @@ final class ExperimentIntegrityValidator
     public const VIOLATION_NEGATIVE_WEIGHT = 'negativeWeight';
     public const VIOLATION_WEIGHT_SUM = 'weightSum';
     public const VIOLATION_CONTROL_COUNT = 'controlCount';
+    public const VIOLATION_CMS_PAGE_MISSING = 'cmsPageMissing';
 
     private const MESSAGES = [
         self::VIOLATION_TOO_FEW_VARIANTS => 'Ein Experiment braucht mindestens zwei Varianten.',
         self::VIOLATION_NEGATIVE_WEIGHT => 'Varianten-Gewichte dürfen nicht negativ sein.',
         self::VIOLATION_WEIGHT_SUM => 'Die Varianten-Gewichte müssen zusammen 100 ergeben.',
         self::VIOLATION_CONTROL_COUNT => 'Ein Experiment braucht genau eine Control-Variante.',
+        self::VIOLATION_CMS_PAGE_MISSING => 'Bei einem CMS-Seiten-Test braucht jede Variante eine ausgewählte CMS-Seite.',
     ];
 
     /**
@@ -39,7 +42,24 @@ final class ExperimentIntegrityValidator
     {
         $variants = $this->variants($experiment);
 
-        return $this->firstViolationForVariants($variants);
+        $violation = $this->firstViolationForVariants($variants);
+        if ($violation !== null) {
+            return $violation;
+        }
+
+        // CMS-Seiten-Test: jede Variante muss eine CMS-Seite tragen, sonst
+        // gaebe es fuer einen Teil der Besucher keine ausspielbare Seite.
+        if ($experiment->getTestType() === AbExperimentTestType::CMS_PAGE) {
+            foreach ($variants as $variant) {
+                $config = $variant->getConfig();
+                $cmsPageId = \is_array($config) ? ($config[AbExperimentTestType::CMS_PAGE_CONFIG_KEY] ?? null) : null;
+                if (!\is_string($cmsPageId) || $cmsPageId === '') {
+                    return self::VIOLATION_CMS_PAGE_MISSING;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

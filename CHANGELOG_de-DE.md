@@ -1,5 +1,17 @@
 # Changelog (DE)
 
+## [1.3.0] - 2026-07-06
+
+
+### Neu
+
+- **CMS-Seiten-Test (No-Code):** Neuer Test-Typ „CMS-Seite". Pro Variante waehlt man im Admin eine fertige CMS-Seite (Erlebniswelt) aus einem Dropdown — kein Twig/JSON. Ein Storefront-Subscriber liefert je nach Zuweisung die passende Seite aus (Start-/Kategorie-, Landing- und Produktseiten), waehrend Kategorie/URL unveraendert bleiben. Control = die aktuell live ausgelieferte Seite. Zuordnung, Targeting, Consent, Sticky-Bucketing und das Funnel-/Abbruch-Tracking laufen ueber dieselbe Basis wie die uebrigen Test-Typen — die Auswertung fuellt sich also automatisch. Faellt das Laden der Variantenseite aus, bleibt die Control-Seite stehen (der Test bricht die Seite nie).
+
+### Admin
+
+- **50:50-Standardaufteilung:** Beim Hinzufuegen/Entfernen von Varianten werden die Gewichte automatisch gleichmaessig auf 100 verteilt (zwei Varianten = 50/50). Eine abweichende Aufteilung laesst sich weiterhin frei einstellen.
+- **Klartext-Empfehlung:** Die Auswertung zeigt zusaetzlich zur Statistik einen verstaendlichen Handlungssatz je Variante — z. B. „Variante B ist signifikant schlechter — nicht ausrollen", „… signifikant besser — kann ausgerollt werden", „kein messbarer Unterschied" oder „noch nicht genug Daten (x von y noetig)" — mit passender Ampelfarbe. Fuer Entscheider, die keine p-Values lesen.
+
 ## [1.2.0] - 2026-07-06
 
 > **Deployment:** git-Commit/Tag + Rollout auf die Instanzen erfolgen beim Release.

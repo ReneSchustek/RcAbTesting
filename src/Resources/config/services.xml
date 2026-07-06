@@ -145,6 +145,22 @@
                  alias="Ruhrcoder\RcAbTesting\Bridge\ActiveVariantQueryImpl"
                  public="true"/>
 
+        <!-- No-Code-CMS-Auslieferung: Locator (Reverse-Lookup) + Page-Loaded-Subscriber. -->
+        <service id="Ruhrcoder\RcAbTesting\Service\Cms\CmsExperimentLocator">
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentRegistry"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAbTesting\Storefront\Subscriber\CmsPageVariantSubscriber">
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Cms\CmsExperimentLocator"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\RequestVariantResolver"/>
+            <argument type="service" id="Shopware\Core\Content\Cms\SalesChannel\SalesChannelCmsPageLoader"/>
+            <argument type="service" id="Shopware\Core\Content\Category\CategoryDefinition"/>
+            <argument type="service" id="Shopware\Core\Content\LandingPage\LandingPageDefinition"/>
+            <argument type="service" id="Shopware\Core\Content\Product\ProductDefinition"/>
+            <argument type="service" id="logger"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
         <!-- Statistik-Mathematik (reine Services, keine I/O-Abhängigkeit). -->
         <service id="Ruhrcoder\RcAbTesting\Service\Stats\NormalDistribution"/>
 

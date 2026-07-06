@@ -31,6 +31,7 @@
             "testTypeTwig": "Twig-Variante",
             "testTypeTheme": "Theme",
             "testTypeFeatureFlag": "Feature-Flag",
+            "testTypeCms": "CMS-Seite",
             "traffic": "Traffic-Anteil (%)",
             "targetSignificance": "Ziel-Signifikanz",
             "variantsTitle": "Varianten",
@@ -61,6 +62,11 @@
             "significantBetter": "signifikant besser",
             "significantWorse": "signifikant schlechter",
             "requiredSample": "Benötigte Fallzahl/Variante",
+            "recTitle": "Empfehlung",
+            "recBetter": "Variante {variant} ist signifikant besser — kann ausgerollt werden.",
+            "recWorse": "Variante {variant} ist signifikant schlechter — nicht ausrollen.",
+            "recNoDifference": "Variante {variant}: kein messbarer Unterschied zur Kontrolle.",
+            "recNotEnoughData": "Variante {variant}: noch nicht genug Daten ({current} von {required} Zuordnungen je Variante nötig).",
             "scheduledStart": "Geplanter Start",
             "scheduledEnd": "Geplantes Ende",
             "start": "Starten",
@@ -81,6 +87,8 @@
             "variantConfig": "Config (JSON)",
             "variantConfigHelp": "Optionales JSON-Objekt, z. B. für Theme-/Feature-Flag-Varianten.",
             "variantConfigInvalid": "Die Varianten-Config enthält ungültiges JSON.",
+            "variantCmsPagePlaceholder": "CMS-Seite wählen …",
+            "variantCmsPageHelp": "Die für diese Variante ausgelieferte CMS-Seite (Erlebniswelt). Control = die aktuell live ausgelieferte Seite.",
             "errors": {
                 "experimentNotFound": "Experiment nicht gefunden.",
                 "onlyRunningCanBePaused": "Nur laufende Experimente können pausiert werden.",
@@ -89,7 +97,8 @@
                 "tooFewVariants": "Ein Experiment braucht mindestens zwei Varianten.",
                 "negativeWeight": "Varianten-Gewichte dürfen nicht negativ sein.",
                 "weightSum": "Die Varianten-Gewichte müssen zusammen 100 ergeben.",
-                "controlCount": "Ein Experiment braucht genau eine Control-Variante."
+                "controlCount": "Ein Experiment braucht genau eine Control-Variante.",
+                "cmsPageMissing": "Bei einem CMS-Seiten-Test braucht jede Variante eine ausgewählte CMS-Seite."
             }
         }
     }
