@@ -30,6 +30,7 @@ Component.register('rc-ab-testing-detail', {
             experiment: null,
             stats: null,
             evaluation: null,
+            segments: null,
             winnerVariantId: null,
             deletedVariantIds: [],
             variantConfigDrafts: {},
@@ -160,10 +161,40 @@ Component.register('rc-ab-testing-detail', {
         statsTabs() {
             return [
                 { key: 'overview', label: this.$tc('rc-ab-testing.detail.tabOverview'), available: true },
+                { key: 'segments', label: this.$tc('rc-ab-testing.detail.tabSegments'), available: true },
                 { key: 'time', label: this.$tc('rc-ab-testing.detail.tabTime'), available: false },
-                { key: 'segments', label: this.$tc('rc-ab-testing.detail.tabSegments'), available: false },
                 { key: 'funnel', label: this.$tc('rc-ab-testing.detail.tabFunnel'), available: false },
             ];
+        },
+
+        // Segment-Gruppen (Gerät, Verkaufskanal) fuer den Segmente-Tab, gerendert aus
+        // der Server-Antwort. Eine Dimension wird nur gezeigt, wenn sie mindestens
+        // zwei Segmente hat — eine einzige Auspraegung entspraeche dem Gesamtbild.
+        segmentGroups() {
+            if (!this.segments) {
+                return [];
+            }
+            const groups = [];
+            [
+                { key: 'device', title: this.$tc('rc-ab-testing.detail.segmentByDevice') },
+                { key: 'salesChannel', title: this.$tc('rc-ab-testing.detail.segmentBySalesChannel') },
+            ].forEach((dimension) => {
+                const raw = this.segments[dimension.key] || [];
+                if (raw.length < 2) {
+                    return;
+                }
+                groups.push({
+                    key: dimension.key,
+                    title: dimension.title,
+                    segments: raw.map((segment) => this.buildSegmentView(dimension.key, segment)),
+                });
+            });
+
+            return groups;
+        },
+
+        hasSegmentData() {
+            return this.segmentGroups.length > 0;
         },
 
         controlStatsRow() {
@@ -514,6 +545,7 @@ Component.register('rc-ab-testing-detail', {
                 const response = await this.httpClient.get(`${this.actionBase}/stats`, { headers: this.apiHeaders });
                 this.stats = response.data.variants;
                 this.evaluation = response.data.evaluation;
+                this.segments = response.data.segments || null;
             } catch (error) {
                 this.createNotificationError({ message: this.serverError(error, 'rc-ab-testing.detail.statsError') });
             }
@@ -585,6 +617,63 @@ Component.register('rc-ab-testing-detail', {
             }
 
             return format === 'rate' ? this.formatRate(value) : this.formatCurrency(value);
+        },
+
+        // Wandelt ein Server-Segment in eine render-fertige Ansicht: sprechendes
+        // Label + Varianten-Zeilen mit formatierten Werten und Ergebnis-Badge.
+        buildSegmentView(dimensionKey, segment) {
+            const controlAssignments = (segment.variants.find((row) => row.isControl) || {}).assignments || 0;
+
+            return {
+                label: this.segmentLabel(dimensionKey, segment),
+                size: segment.size,
+                variants: segment.variants.map((row) => ({
+                    technicalKey: row.technicalKey,
+                    isControl: row.isControl,
+                    assignments: row.assignments,
+                    rate: this.formatRate(row.rate),
+                    revenuePerVisitor: this.formatCurrency(row.revenuePerVisitor),
+                    result: this.segmentVariantResult(row, segment.evaluation, controlAssignments),
+                })),
+            };
+        },
+
+        segmentLabel(dimensionKey, segment) {
+            if (dimensionKey === 'salesChannel') {
+                return segment.name || segment.segment;
+            }
+            const key = `rc-ab-testing.detail.device.${segment.segment}`;
+            const translated = this.$tc(key);
+
+            return translated === key ? segment.segment : translated;
+        },
+
+        // Kompaktes Ergebnis je Variante im Segment (Ampel), abgeleitet aus der
+        // segment-eigenen Auswertung — dieselbe Logik wie im Gesamtbild.
+        segmentVariantResult(row, evaluation, controlAssignments) {
+            if (row.isControl) {
+                return { variant: 'info', text: this.$tc('rc-ab-testing.detail.segReference') };
+            }
+            const comparison = ((evaluation && evaluation.comparisons) || []).find(
+                (entry) => entry.variantKey === row.technicalKey,
+            );
+            if (!comparison) {
+                return { variant: 'info', text: '–' };
+            }
+            if (comparison.significant) {
+                const worse = comparison.lift !== null && comparison.lift < 0;
+                return {
+                    variant: worse ? 'error' : 'success',
+                    text: this.$tc(worse ? 'rc-ab-testing.detail.significantWorse' : 'rc-ab-testing.detail.significantBetter'),
+                };
+            }
+            const required = comparison.requiredSamplePerVariant || 0;
+            const enough = required > 0 && controlAssignments >= required && row.assignments >= required;
+
+            return {
+                variant: 'info',
+                text: this.$tc(enough ? 'rc-ab-testing.detail.segNoDifference' : 'rc-ab-testing.detail.segNotEnough'),
+            };
         },
 
         formatRate(rate) {

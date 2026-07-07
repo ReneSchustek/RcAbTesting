@@ -11,9 +11,12 @@ use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
 use Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator;
 use Ruhrcoder\RcAbTesting\Service\ExperimentLookup;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\System\SalesChannel\SalesChannelCollection;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,13 +33,16 @@ final class RcAbExperimentApiController
 {
     /**
      * @param EntityRepository<AbExperimentCollection> $experimentRepository
+     * @param EntityRepository<SalesChannelCollection> $salesChannelRepository
      */
     public function __construct(
         private readonly ExperimentLookup $experimentLookup,
         private readonly EntityRepository $experimentRepository,
         private readonly ExperimentStatsAggregator $statsAggregator,
+        private readonly ExperimentSegmentAggregator $segmentAggregator,
         private readonly ExperimentEvaluator $evaluator,
         private readonly ExperimentIntegrityValidator $integrityValidator,
+        private readonly EntityRepository $salesChannelRepository,
     ) {
     }
 
@@ -78,7 +84,94 @@ final class RcAbExperimentApiController
             'experimentId' => $id,
             'variants' => $variants,
             'evaluation' => $this->evaluator->evaluate($experiment, $stats),
+            'segments' => [
+                'device' => $this->buildSegment($experiment, ExperimentSegmentAggregator::DEVICE, $context),
+                'salesChannel' => $this->buildSegment($experiment, ExperimentSegmentAggregator::SALES_CHANNEL, $context),
+            ],
         ]);
+    }
+
+    /**
+     * Baut die Segment-Auswertung einer Dimension: je Segment-Wert die Varianten-
+     * Kennzahlen plus dieselbe statistische Auswertung wie im Gesamtbild. Nach
+     * Segmentgröße (Zuordnungen) absteigend sortiert, damit das relevanteste
+     * Segment oben steht.
+     *
+     * @return list<array{segment: string, name: string|null, size: int, variants: list<array{technicalKey: string, isControl: bool, assignments: int, conversions: int, rate: float|null, revenuePerVisitor: float|null}>, evaluation: array<string, mixed>}>
+     */
+    private function buildSegment(AbExperimentEntity $experiment, string $dimension, Context $context): array
+    {
+        $bySegment = $this->segmentAggregator->aggregate($experiment, $dimension);
+        if ($bySegment === []) {
+            return [];
+        }
+
+        $names = $dimension === ExperimentSegmentAggregator::SALES_CHANNEL
+            ? $this->salesChannelNames(array_keys($bySegment), $context)
+            : [];
+
+        $segments = [];
+        foreach ($bySegment as $segmentValue => $variantStats) {
+            $size = array_sum(array_map(static fn (array $stat): int => $stat['assignments'], $variantStats));
+            $segments[] = [
+                'segment' => (string) $segmentValue,
+                'name' => $names[$segmentValue] ?? null,
+                'size' => $size,
+                'variants' => $this->buildSegmentVariants($experiment, $variantStats),
+                'evaluation' => $this->evaluator->evaluate($experiment, $variantStats),
+            ];
+        }
+
+        usort($segments, static fn (array $a, array $b): int => $b['size'] <=> $a['size']);
+
+        return $segments;
+    }
+
+    /**
+     * @param array<string, array{assignments: int, conversions: int, revenue: float, revenueSumSq: float}> $variantStats
+     *
+     * @return list<array{technicalKey: string, isControl: bool, assignments: int, conversions: int, rate: float|null, revenuePerVisitor: float|null}>
+     */
+    private function buildSegmentVariants(AbExperimentEntity $experiment, array $variantStats): array
+    {
+        $rows = [];
+        foreach ($this->variants($experiment) as $variant) {
+            $stat = $variantStats[$variant->getId()] ?? ['assignments' => 0, 'conversions' => 0, 'revenue' => 0.0, 'revenueSumSq' => 0.0];
+            $rows[] = [
+                'technicalKey' => $variant->getTechnicalKey(),
+                'isControl' => $variant->isControl(),
+                'assignments' => $stat['assignments'],
+                'conversions' => $stat['conversions'],
+                'rate' => $stat['assignments'] > 0 ? $stat['conversions'] / $stat['assignments'] : null,
+                'revenuePerVisitor' => $stat['assignments'] > 0 ? $stat['revenue'] / $stat['assignments'] : null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Auflösung der Verkaufskanal-Namen zu den (hex) Segment-Ids. Nur ein DAL-Read
+     * für alle vorkommenden Kanäle.
+     *
+     * @param list<string> $ids
+     *
+     * @return array<string, string>
+     */
+    private function salesChannelNames(array $ids, Context $context): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $channels = $this->salesChannelRepository->search(new Criteria($ids), $context)->getEntities();
+
+        $names = [];
+        foreach ($channels as $channel) {
+            $names[$channel->getId()] = $channel->getName() ?? $channel->getId();
+        }
+
+        return $names;
     }
 
     #[Route(

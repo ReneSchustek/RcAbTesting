@@ -200,6 +200,15 @@
                             :columns="scorecardColumns"
                             :show-selection="false"
                             :show-actions="false">
+                            <template #column-label-assignments="{ column }">
+                                <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.assignments')"></mt-icon></span>
+                            </template>
+                            <template #column-label-rate="{ column }">
+                                <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.rate')"></mt-icon></span>
+                            </template>
+                            <template #column-label-revenuePerVisitor="{ column }">
+                                <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.revenuePerVisitor')"></mt-icon></span>
+                            </template>
                             <template #column-rate="{ item }">
                                 {{ formatRate(item.rate) }}
                             </template>
@@ -243,6 +252,21 @@
                         ]"
                         :show-selection="false"
                         :show-actions="false">
+                        <template #column-label-lift="{ column }">
+                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.lift')"></mt-icon></span>
+                        </template>
+                        <template #column-label-pValue="{ column }">
+                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.pValue')"></mt-icon></span>
+                        </template>
+                        <template #column-label-ci="{ column }">
+                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.confidenceInterval')"></mt-icon></span>
+                        </template>
+                        <template #column-label-significant="{ column }">
+                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.significance')"></mt-icon></span>
+                        </template>
+                        <template #column-label-requiredSamplePerVariant="{ column }">
+                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.requiredSample')"></mt-icon></span>
+                        </template>
                         <template #column-lift="{ item }">{{ formatLift(item.lift) }}</template>
                         <template #column-pValue="{ item }">{{ formatPValue(item.pValue) }}</template>
                         <template #column-ci="{ item }">{{ formatInterval(item) }}</template>
@@ -266,8 +290,64 @@
                 </template>
                 {% endblock %}
 
+                {% block rc_ab_testing_detail_card_stats_segments %}
+                <template v-if="activeStatsTab === 'segments'">
+                    <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
+                        {{ $tc('rc-ab-testing.detail.statsEmpty') }}
+                    </div>
+                    <div v-else-if="!hasSegmentData" class="rc-ab-testing-detail__placeholder">
+                        {{ $tc('rc-ab-testing.detail.segmentsEmpty') }}
+                    </div>
+                    <template v-else>
+                        <div
+                            v-for="group in segmentGroups"
+                            :key="group.key"
+                            class="rc-ab-testing-detail__segment-group">
+                            <h3 class="rc-ab-testing-detail__segment-title">{{ group.title }}</h3>
+                            <div
+                                v-for="(seg, segIndex) in group.segments"
+                                :key="segIndex"
+                                class="rc-ab-testing-detail__segment">
+                                <div class="rc-ab-testing-detail__segment-head">
+                                    <span class="rc-ab-testing-detail__segment-name">{{ seg.label }}</span>
+                                    <span class="rc-ab-testing-detail__segment-size">{{ seg.size }} {{ $tc('rc-ab-testing.detail.assignments') }}</span>
+                                </div>
+                                <div class="rc-ab-testing-detail__segment-table">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>{{ $tc('rc-ab-testing.detail.variantKey') }}</th>
+                                                <th>{{ $tc('rc-ab-testing.detail.assignments') }}</th>
+                                                <th>{{ $tc('rc-ab-testing.detail.rate') }}</th>
+                                                <th>{{ $tc('rc-ab-testing.detail.revenuePerVisitor') }}</th>
+                                                <th>{{ $tc('rc-ab-testing.detail.segmentResult') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="variant in seg.variants" :key="variant.technicalKey">
+                                                <td>{{ variant.technicalKey }}</td>
+                                                <td>{{ variant.assignments }}</td>
+                                                <td>{{ variant.rate }}</td>
+                                                <td>{{ variant.revenuePerVisitor }}</td>
+                                                <td>
+                                                    <span
+                                                        class="rc-ab-testing-detail__seg-result"
+                                                        :class="`is--${variant.result.variant}`">
+                                                        {{ variant.result.text }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+                {% endblock %}
+
                 {% block rc_ab_testing_detail_card_stats_soon %}
-                <div v-if="activeStatsTab !== 'overview'" class="rc-ab-testing-detail__placeholder">
+                <div v-if="activeStatsTab === 'time' || activeStatsTab === 'funnel'" class="rc-ab-testing-detail__placeholder">
                     {{ $tc('rc-ab-testing.detail.tabInPreparation') }}
                 </div>
                 {% endblock %}
