@@ -32,6 +32,7 @@ final class RequestVariantResolver implements ResetInterface
     public function __construct(
         private readonly VariantAssigner $variantAssigner,
         private readonly RequestStack $requestStack,
+        private readonly DeviceClassResolver $deviceClassResolver,
     ) {
     }
 
@@ -64,7 +65,10 @@ final class RequestVariantResolver implements ResetInterface
 
         // Nur persistieren, wenn die Besucher-ID aus einem echten Cookie stammt.
         $persist = $request->attributes->get(VisitorIdResolver::PERSISTENT_ATTRIBUTE) === true;
-        $variant = $this->variantAssigner->assign($experimentKey, $visitorId, $salesChannelContext, $persist);
+        // Geräteklasse am HTTP-Rand aus dem User-Agent ableiten und mitgeben — die
+        // Zuordnung haelt sie fuer die Segment-Auswertung fest.
+        $device = $this->deviceClassResolver->resolve($request->headers->get('User-Agent'));
+        $variant = $this->variantAssigner->assign($experimentKey, $visitorId, $salesChannelContext, $persist, $device);
         if ($variant !== null) {
             $request->attributes->set(self::IN_EXPERIMENT_ATTRIBUTE, true);
         }

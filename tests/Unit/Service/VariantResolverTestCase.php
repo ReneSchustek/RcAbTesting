@@ -13,6 +13,7 @@ use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentEntity;
 use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentStatus;
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantCollection;
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
+use Ruhrcoder\RcAbTesting\Service\DeviceClassResolver;
 use Ruhrcoder\RcAbTesting\Service\ExperimentRegistry;
 use Ruhrcoder\RcAbTesting\Service\RequestVariantResolver;
 use Ruhrcoder\RcAbTesting\Service\VariantAssigner;
@@ -63,6 +64,7 @@ abstract class VariantResolverTestCase extends TestCase
         return new RequestVariantResolver(
             $this->variantAssigner($assignmentRepository),
             $this->requestStack($withRequest, $withSalesChannelContext),
+            new DeviceClassResolver(),
         );
     }
 

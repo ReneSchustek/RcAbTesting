@@ -46,6 +46,8 @@ final class AbAssignmentEntity extends Entity
 
     protected \DateTimeInterface $lastSeenAt;
 
+    protected ?string $device = null;
+
     public function getExperimentId(): string
     {
         return $this->experimentId;
@@ -174,5 +176,15 @@ final class AbAssignmentEntity extends Entity
     public function setLastSeenAt(\DateTimeInterface $lastSeenAt): void
     {
         $this->lastSeenAt = $lastSeenAt;
+    }
+
+    public function getDevice(): ?string
+    {
+        return $this->device;
+    }
+
+    public function setDevice(?string $device): void
+    {
+        $this->device = $device;
     }
 }

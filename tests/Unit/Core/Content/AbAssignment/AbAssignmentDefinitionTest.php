@@ -44,6 +44,7 @@ final class AbAssignmentDefinitionTest extends TestCase
                 'language',
                 'assignedAt',
                 'lastSeenAt',
+                'device',
             ],
             $this->collectFieldKeys(new AbAssignmentDefinition()),
         );

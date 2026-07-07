@@ -39,7 +39,7 @@ final class VariantAssigner
     ) {
     }
 
-    public function assign(string $experimentTechnicalKey, string $visitorId, SalesChannelContext $salesChannelContext, bool $persistAssignment = true): ?AbVariantEntity
+    public function assign(string $experimentTechnicalKey, string $visitorId, SalesChannelContext $salesChannelContext, bool $persistAssignment = true, ?string $device = null): ?AbVariantEntity
     {
         $context = $salesChannelContext->getContext();
 
@@ -89,7 +89,7 @@ final class VariantAssigner
             return $this->resolveVariant($experiment, $existing->getVariantId());
         }
 
-        return $this->createAssignment($experiment, $visitorId, $customerId, $salesChannelContext);
+        return $this->createAssignment($experiment, $visitorId, $customerId, $salesChannelContext, $device);
     }
 
     /**
@@ -151,7 +151,7 @@ final class VariantAssigner
         return true;
     }
 
-    private function createAssignment(AbExperimentEntity $experiment, string $visitorId, ?string $customerId, SalesChannelContext $salesChannelContext): ?AbVariantEntity
+    private function createAssignment(AbExperimentEntity $experiment, string $visitorId, ?string $customerId, SalesChannelContext $salesChannelContext, ?string $device = null): ?AbVariantEntity
     {
         $context = $salesChannelContext->getContext();
         $bucket = $this->bucketer->bucketFor($visitorId, $experiment->getTechnicalKey());
@@ -172,6 +172,7 @@ final class VariantAssigner
                 'languageId' => $context->getLanguageId(),
                 'assignedAt' => $now,
                 'lastSeenAt' => $now,
+                'device' => $device,
             ]], $context);
         } catch (UniqueConstraintViolationException) {
             // Paralleler Request hat dieselbe Zuordnung bereits angelegt: den

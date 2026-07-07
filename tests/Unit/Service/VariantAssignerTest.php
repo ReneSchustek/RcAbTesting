@@ -92,6 +92,23 @@ final class VariantAssignerTest extends TestCase
         self::assertContains($result->getTechnicalKey(), ['a', 'b']);
     }
 
+    public function testDeviceIsPersistedOnNewAssignment(): void
+    {
+        $experiment = $this->experiment('checkout', 100, [$this->variant('a', 50), $this->variant('b', 50)]);
+        $registry = $this->registryWith($experiment);
+
+        $assignmentRepository = $this->createMock(EntityRepository::class);
+        $assignmentRepository->method('search')->willReturn($this->assignmentResult());
+        $assignmentRepository->expects(self::once())->method('create')->with(self::callback(
+            static fn (array $payload): bool => ($payload[0]['device'] ?? null) === 'mobile',
+        ));
+
+        $assigner = new VariantAssigner($registry, $assignmentRepository, new VisitorBucketer(), new NullLogger());
+        $result = $assigner->assign('checkout', 'visitor-1', $this->salesChannelContext(), true, 'mobile');
+
+        self::assertNotNull($result);
+    }
+
     public function testLoggedInCustomerFollowsCrossDeviceVariant(): void
     {
         $variant = $this->variant('a', 100);

@@ -58,6 +58,9 @@ final class AbAssignmentDefinition extends EntityDefinition
             (new FkField('language_id', 'languageId', LanguageDefinition::class))->addFlags(new ApiAware(), new Required()),
             (new DateTimeField('assigned_at', 'assignedAt'))->addFlags(new ApiAware(), new Required()),
             (new DateTimeField('last_seen_at', 'lastSeenAt'))->addFlags(new ApiAware(), new Required()),
+            // Geräteklasse beim ersten Bucketing (s. AbDeviceClass) — Basis der
+            // Segment-Auswertung je Gerät. Nullable: Bestandszuordnungen kennen keine.
+            (new StringField('device', 'device', 16))->addFlags(new ApiAware()),
 
             (new ManyToOneAssociationField('experiment', 'experiment_id', AbExperimentDefinition::class, 'id', false))
                 ->addFlags(new ApiAware(), new CascadeDelete()),

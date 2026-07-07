@@ -16,6 +16,7 @@ use Ruhrcoder\RcAbTesting\Migration\Migration1747569605AddCustomerUnique;
 use Ruhrcoder\RcAbTesting\Migration\Migration1747569606AddExperimentKeyUnique;
 use Ruhrcoder\RcAbTesting\Migration\Migration1747569607AddScheduling;
 use Ruhrcoder\RcAbTesting\Migration\Migration1747569608AddDecisionMetric;
+use Ruhrcoder\RcAbTesting\Migration\Migration1747569609AddAssignmentDevice;
 use Shopware\Core\Framework\Migration\MigrationStep;
 
 /**
@@ -231,5 +232,38 @@ final class MigrationSmokeTest extends TestCase
         $connection->expects(self::never())->method('executeStatement');
 
         (new Migration1747569608AddDecisionMetric())->update($connection);
+    }
+
+    public function testAddAssignmentDeviceTimestampIsPinned(): void
+    {
+        self::assertSame(1747569609, (new Migration1747569609AddAssignmentDevice())->getCreationTimestamp());
+    }
+
+    public function testAddAssignmentDeviceAddsColumnWhenMissing(): void
+    {
+        $statements = [];
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willReturn(false); // Spalte fehlt noch
+        $connection->method('executeStatement')->willReturnCallback(
+            function (string $sql) use (&$statements): int {
+                $statements[] = $sql;
+
+                return 0;
+            },
+        );
+
+        (new Migration1747569609AddAssignmentDevice())->update($connection);
+
+        self::assertCount(1, $statements);
+        self::assertStringContainsString('ADD COLUMN `device`', $statements[0]);
+    }
+
+    public function testAddAssignmentDeviceSkipsWhenColumnExists(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willReturn('device'); // Spalte vorhanden
+        $connection->expects(self::never())->method('executeStatement');
+
+        (new Migration1747569609AddAssignmentDevice())->update($connection);
     }
 }

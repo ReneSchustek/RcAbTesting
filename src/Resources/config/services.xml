@@ -126,9 +126,12 @@
         </service>
 
         <!-- Geteilter Request-Resolver (Twig + Bridge). kernel.reset leert das Memo im Worker-Modus. -->
+        <service id="Ruhrcoder\RcAbTesting\Service\DeviceClassResolver"/>
+
         <service id="Ruhrcoder\RcAbTesting\Service\RequestVariantResolver">
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\VariantAssigner"/>
             <argument type="service" id="request_stack"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\DeviceClassResolver"/>
             <tag name="kernel.reset" method="reset"/>
         </service>
 
