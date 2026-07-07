@@ -75,6 +75,9 @@
             "segReference": "Reference",
             "segNoDifference": "no difference",
             "segNotEnough": "not enough data",
+            "timeEmpty": "No data yet for the time series.",
+            "timeCaption": "Cumulative trend of {metric} per variant over time.",
+            "timeHint": "Cumulative: noisy early (few visitors), stabilises over time — this distinguishes an early signal from a reliable trend.",
             "device": {
                 "desktop": "Desktop",
                 "mobile": "Mobile",

@@ -31,6 +31,7 @@ Component.register('rc-ab-testing-detail', {
             stats: null,
             evaluation: null,
             segments: null,
+            timeSeries: null,
             winnerVariantId: null,
             deletedVariantIds: [],
             variantConfigDrafts: {},
@@ -162,7 +163,7 @@ Component.register('rc-ab-testing-detail', {
             return [
                 { key: 'overview', label: this.$tc('rc-ab-testing.detail.tabOverview'), available: true },
                 { key: 'segments', label: this.$tc('rc-ab-testing.detail.tabSegments'), available: true },
-                { key: 'time', label: this.$tc('rc-ab-testing.detail.tabTime'), available: false },
+                { key: 'time', label: this.$tc('rc-ab-testing.detail.tabTime'), available: true },
                 { key: 'funnel', label: this.$tc('rc-ab-testing.detail.tabFunnel'), available: false },
             ];
         },
@@ -195,6 +196,85 @@ Component.register('rc-ab-testing-detail', {
 
         hasSegmentData() {
             return this.segmentGroups.length > 0;
+        },
+
+        timeSeriesReady() {
+            return !!this.timeSeries && this.timeSeries.some((serie) => serie.points.length > 0);
+        },
+
+        // Geometrie des Zeitverlauf-Charts (Inline-SVG): je Variante der kumulative
+        // Verlauf der Entscheidungs-Kennzahl (Umsatz/Besucher oder Conversion-Rate).
+        // Kumulativ, weil ein frueher Ausschlag bei wenigen Besuchern taeuscht und
+        // sich der Wert erst mit der Zeit stabilisiert.
+        timeSeriesChart() {
+            if (!this.timeSeriesReady) {
+                return null;
+            }
+            const width = 640;
+            const height = 260;
+            const padLeft = 56;
+            const padRight = 16;
+            const padTop = 14;
+            const padBottom = 28;
+
+            const dates = [...new Set(this.timeSeries.flatMap((serie) => serie.points.map((point) => point.date)))].sort();
+            const dateIndex = {};
+            dates.forEach((date, index) => { dateIndex[date] = index; });
+            const xOf = (index) => (dates.length <= 1
+                ? padLeft + (width - padLeft - padRight) / 2
+                : padLeft + (width - padLeft - padRight) * (index / (dates.length - 1)));
+
+            const isMean = this.isMeanDecision;
+            const palette = ['#189eff', '#8b5cf6', '#e67e22', '#16a085'];
+            let variantColorIndex = 0;
+            const series = this.timeSeries.map((serie) => {
+                let assignments = 0;
+                let conversions = 0;
+                let revenue = 0;
+                const points = serie.points.map((point) => {
+                    assignments += point.assignments;
+                    conversions += point.conversions;
+                    revenue += point.revenue;
+                    const value = assignments > 0 ? (isMean ? revenue / assignments : conversions / assignments) : 0;
+                    return { x: xOf(dateIndex[point.date]), value };
+                });
+                const color = serie.isControl ? '#8595a4' : palette[(variantColorIndex++) % palette.length];
+                return { key: serie.technicalKey, isControl: serie.isControl, color, points };
+            });
+
+            const values = series.flatMap((serie) => serie.points.map((point) => point.value));
+            let min = Math.min(...values);
+            let max = Math.max(...values);
+            if (min === max) {
+                max = min + (min === 0 ? 1 : Math.abs(min) * 0.2);
+            }
+            const margin = (max - min) * 0.1;
+            min = Math.max(0, min - margin);
+            max += margin;
+            const yOf = (value) => padTop + (height - padTop - padBottom) * (1 - (value - min) / (max - min));
+
+            series.forEach((serie) => {
+                serie.line = serie.points.map((point) => `${point.x.toFixed(1)},${yOf(point.value).toFixed(1)}`).join(' ');
+                const last = serie.points[serie.points.length - 1];
+                serie.end = { x: last.x.toFixed(1), y: yOf(last.value).toFixed(1) };
+            });
+
+            const yTicks = [];
+            const steps = 4;
+            for (let step = 0; step <= steps; step += 1) {
+                const value = min + (max - min) * (step / steps);
+                yTicks.push({ y: yOf(value).toFixed(1), x1: padLeft, x2: width - padRight, label: this.formatChartValue(value) });
+            }
+
+            const xTicks = [];
+            const every = dates.length > 8 ? Math.ceil(dates.length / 6) : 1;
+            dates.forEach((date, index) => {
+                if (index % every === 0 || index === dates.length - 1) {
+                    xTicks.push({ x: xOf(index).toFixed(1), label: this.shortDate(date) });
+                }
+            });
+
+            return { width, height, bottom: height - padBottom, series, yTicks, xTicks };
         },
 
         controlStatsRow() {
@@ -546,6 +626,7 @@ Component.register('rc-ab-testing-detail', {
                 this.stats = response.data.variants;
                 this.evaluation = response.data.evaluation;
                 this.segments = response.data.segments || null;
+                this.timeSeries = response.data.timeSeries || null;
             } catch (error) {
                 this.createNotificationError({ message: this.serverError(error, 'rc-ab-testing.detail.statsError') });
             }
@@ -617,6 +698,18 @@ Component.register('rc-ab-testing-detail', {
             }
 
             return format === 'rate' ? this.formatRate(value) : this.formatCurrency(value);
+        },
+
+        // Achsenbeschriftung des Zeitverlaufs — in der Einheit der Entscheidungs-
+        // Kennzahl (Euro bzw. Prozent).
+        formatChartValue(value) {
+            return this.isMeanDecision ? this.formatCurrency(value) : `${(value * 100).toFixed(1)} %`;
+        },
+
+        // ISO-Datum (YYYY-MM-DD) zu Tag.Monat fuer die X-Achse.
+        shortDate(date) {
+            const parts = date.split('-');
+            return parts.length === 3 ? `${parts[2]}.${parts[1]}` : date;
         },
 
         // Wandelt ein Server-Segment in eine render-fertige Ansicht: sprechendes

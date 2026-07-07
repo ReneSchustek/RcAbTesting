@@ -75,6 +75,9 @@
             "segReference": "Referenz",
             "segNoDifference": "kein Unterschied",
             "segNotEnough": "zu wenig Daten",
+            "timeEmpty": "Für den Zeitverlauf liegen noch keine Daten vor.",
+            "timeCaption": "Kumulativer Verlauf von {metric} je Variante über die Zeit.",
+            "timeHint": "Kumulativ: früh (wenige Besucher) noch verrauscht, stabilisiert sich mit der Zeit — so lässt sich ein Frühsignal von einem belastbaren Trend unterscheiden.",
             "device": {
                 "desktop": "Desktop",
                 "mobile": "Mobil",

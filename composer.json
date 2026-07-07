@@ -1,7 +1,7 @@
 {
     "name": "ruhrcoder/rc-ab-testing",
     "description": "A/B-Tests für Shopware: Twig-/Theme-/Feature-Flag-Varianten mit Sticky-Bucketing, Funnel-Tracking und Auswertung.",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "type": "shopware-platform-plugin",
     "license": "MIT",
     "authors": [

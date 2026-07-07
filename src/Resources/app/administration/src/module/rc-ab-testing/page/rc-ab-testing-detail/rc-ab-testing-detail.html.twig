@@ -346,8 +346,72 @@
                 </template>
                 {% endblock %}
 
+                {% block rc_ab_testing_detail_card_stats_time %}
+                <template v-if="activeStatsTab === 'time'">
+                    <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
+                        {{ $tc('rc-ab-testing.detail.statsEmpty') }}
+                    </div>
+                    <div v-else-if="!timeSeriesReady" class="rc-ab-testing-detail__placeholder">
+                        {{ $tc('rc-ab-testing.detail.timeEmpty') }}
+                    </div>
+                    <template v-else>
+                        <p class="rc-ab-testing-detail__chart-caption">
+                            {{ $t('rc-ab-testing.detail.timeCaption', { metric: decisionMetricLabel }) }}
+                        </p>
+                        <div class="rc-ab-testing-detail__chart-wrap">
+                            <svg
+                                class="rc-ab-testing-detail__chart"
+                                :viewBox="'0 0 ' + timeSeriesChart.width + ' ' + timeSeriesChart.height"
+                                preserveAspectRatio="none"
+                                role="img"
+                                :aria-label="$tc('rc-ab-testing.detail.tabTime')">
+                                <line
+                                    v-for="(tick, tickIndex) in timeSeriesChart.yTicks"
+                                    :key="'grid' + tickIndex"
+                                    :x1="tick.x1" :y1="tick.y" :x2="tick.x2" :y2="tick.y"
+                                    class="rc-ab-testing-detail__chart-grid"></line>
+                                <text
+                                    v-for="(tick, tickIndex) in timeSeriesChart.yTicks"
+                                    :key="'ylabel' + tickIndex"
+                                    :x="tick.x1 - 8" :y="Number(tick.y) + 4"
+                                    text-anchor="end"
+                                    class="rc-ab-testing-detail__chart-axis">{{ tick.label }}</text>
+                                <text
+                                    v-for="(tick, tickIndex) in timeSeriesChart.xTicks"
+                                    :key="'xlabel' + tickIndex"
+                                    :x="tick.x" :y="timeSeriesChart.bottom + 18"
+                                    text-anchor="middle"
+                                    class="rc-ab-testing-detail__chart-axis">{{ tick.label }}</text>
+                                <polyline
+                                    v-for="serie in timeSeriesChart.series"
+                                    :key="'line' + serie.key"
+                                    :points="serie.line"
+                                    fill="none"
+                                    :stroke="serie.color"
+                                    stroke-width="2.5"></polyline>
+                                <circle
+                                    v-for="serie in timeSeriesChart.series"
+                                    :key="'end' + serie.key"
+                                    :cx="serie.end.x" :cy="serie.end.y" r="4"
+                                    :fill="serie.color" stroke="#ffffff" stroke-width="2"></circle>
+                            </svg>
+                        </div>
+                        <div class="rc-ab-testing-detail__chart-legend">
+                            <span
+                                v-for="serie in timeSeriesChart.series"
+                                :key="'legend' + serie.key"
+                                class="rc-ab-testing-detail__legend-item">
+                                <span class="rc-ab-testing-detail__legend-line" :style="{ background: serie.color }"></span>
+                                {{ serie.key }}
+                            </span>
+                        </div>
+                        <p class="rc-ab-testing-detail__chart-hint">{{ $tc('rc-ab-testing.detail.timeHint') }}</p>
+                    </template>
+                </template>
+                {% endblock %}
+
                 {% block rc_ab_testing_detail_card_stats_soon %}
-                <div v-if="activeStatsTab === 'time' || activeStatsTab === 'funnel'" class="rc-ab-testing-detail__placeholder">
+                <div v-if="activeStatsTab === 'funnel'" class="rc-ab-testing-detail__placeholder">
                     {{ $tc('rc-ab-testing.detail.tabInPreparation') }}
                 </div>
                 {% endblock %}

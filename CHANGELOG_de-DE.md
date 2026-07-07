@@ -1,5 +1,14 @@
 # Changelog (DE)
 
+## [1.6.0] - 2026-07-07
+
+> **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migration) + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert).
+
+### Auswertung
+
+- **Segment-Auswertung:** Neuer Tab „Segmente" — dieselbe Auswertung je **Geraet** (Desktop/Mobil/Tablet) und je **Verkaufskanal**. So wird sichtbar, dass eine Variante je Segment unterschiedlich wirken kann (z. B. auf Desktop signifikant besser, auf Mobil nicht). Je Segment eine kompakte Scorecard mit Ergebnis-Ampel. Die Geraeteklasse wird beim ersten Bucketing aus dem User-Agent abgeleitet und an der Zuordnung gespeichert — sie greift ab Installation dieser Version; aeltere Zuordnungen erscheinen im Segment „Unbekannt". Eine Dimension wird nur gezeigt, wenn sie mindestens zwei Auspraegungen hat.
+- **Verstaendliche Tabellen:** Die Spaltenueberschriften der Auswertung (Lift, p-Value, Konfidenzintervall, Signifikanz, benoetigte Fallzahl, Zuordnungen, Rate, Umsatz/Besucher) haben jetzt ein Hilfe-Symbol mit MouseOver-Erklaerung in Klartext — fuer Entscheider, die die Fachbegriffe nicht taeglich lesen.
+
 ## [1.5.0] - 2026-07-07
 
 > **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migration) + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert).

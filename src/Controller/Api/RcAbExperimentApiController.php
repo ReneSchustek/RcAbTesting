@@ -13,6 +13,7 @@ use Ruhrcoder\RcAbTesting\Service\ExperimentLookup;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentTimeSeriesAggregator;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -40,6 +41,7 @@ final class RcAbExperimentApiController
         private readonly EntityRepository $experimentRepository,
         private readonly ExperimentStatsAggregator $statsAggregator,
         private readonly ExperimentSegmentAggregator $segmentAggregator,
+        private readonly ExperimentTimeSeriesAggregator $timeSeriesAggregator,
         private readonly ExperimentEvaluator $evaluator,
         private readonly ExperimentIntegrityValidator $integrityValidator,
         private readonly EntityRepository $salesChannelRepository,
@@ -88,7 +90,38 @@ final class RcAbExperimentApiController
                 'device' => $this->buildSegment($experiment, ExperimentSegmentAggregator::DEVICE, $context),
                 'salesChannel' => $this->buildSegment($experiment, ExperimentSegmentAggregator::SALES_CHANNEL, $context),
             ],
+            'timeSeries' => $this->buildTimeSeries($experiment),
         ]);
+    }
+
+    /**
+     * Zeitverlauf je Variante: die täglichen Zuwächse (Zuordnungen, Conversions,
+     * Umsatz). Die Admin-Ansicht bildet daraus den kumulativen Verlauf der
+     * gewählten Kennzahl. Nur Varianten mit mindestens einem Datenpunkt.
+     *
+     * @return list<array{technicalKey: string, isControl: bool, points: list<array{date: string, assignments: int, conversions: int, revenue: float}>}>
+     */
+    private function buildTimeSeries(AbExperimentEntity $experiment): array
+    {
+        $byVariant = $this->timeSeriesAggregator->aggregate($experiment);
+        if ($byVariant === []) {
+            return [];
+        }
+
+        $series = [];
+        foreach ($this->variants($experiment) as $variant) {
+            $points = $byVariant[$variant->getId()] ?? [];
+            if ($points === []) {
+                continue;
+            }
+            $series[] = [
+                'technicalKey' => $variant->getTechnicalKey(),
+                'isControl' => $variant->isControl(),
+                'points' => $points,
+            ];
+        }
+
+        return $series;
     }
 
     /**
