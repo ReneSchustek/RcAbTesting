@@ -1,5 +1,13 @@
 # Changelog (DE)
 
+## [1.7.0] - 2026-07-07
+
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.
+
+### Auswertung
+
+- **Zeitverlauf:** Neuer Tab „Zeitverlauf" — der **kumulative** Verlauf der Entscheidungs-Kennzahl (Umsatz pro Besucher bzw. Conversion-Rate) je Variante ueber die Zeit als Liniendiagramm. So laesst sich ein verfruehtes Zufallssignal (frueh, bei wenigen Besuchern, stark schwankend) von einem stabilen, belastbaren Trend unterscheiden. Achse in der Einheit der gewaehlten Kennzahl (Euro bzw. Prozent).
+
 ## [1.6.0] - 2026-07-07
 
 > **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migration) + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert).

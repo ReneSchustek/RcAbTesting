@@ -410,10 +410,47 @@
                 </template>
                 {% endblock %}
 
-                {% block rc_ab_testing_detail_card_stats_soon %}
-                <div v-if="activeStatsTab === 'funnel'" class="rc-ab-testing-detail__placeholder">
-                    {{ $tc('rc-ab-testing.detail.tabInPreparation') }}
-                </div>
+                {% block rc_ab_testing_detail_card_stats_funnel %}
+                <template v-if="activeStatsTab === 'funnel'">
+                    <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
+                        {{ $tc('rc-ab-testing.detail.statsEmpty') }}
+                    </div>
+                    <div v-else-if="!funnelReady" class="rc-ab-testing-detail__placeholder">
+                        {{ $tc('rc-ab-testing.detail.funnelEmpty') }}
+                    </div>
+                    <template v-else>
+                        <p class="rc-ab-testing-detail__chart-caption">{{ $tc('rc-ab-testing.detail.funnelCaption') }}</p>
+                        <div class="rc-ab-testing-detail__funnel">
+                            <div
+                                v-for="(stage, stageIndex) in funnelView.stages"
+                                :key="stage.key"
+                                class="rc-ab-testing-detail__funnel-stage">
+                                <div class="rc-ab-testing-detail__funnel-stage-name">{{ stage.label }}</div>
+                                <div class="rc-ab-testing-detail__funnel-bars">
+                                    <div
+                                        v-for="row in stage.rows"
+                                        :key="row.key"
+                                        class="rc-ab-testing-detail__funnel-bar">
+                                        <span class="rc-ab-testing-detail__funnel-who">
+                                            <span class="rc-ab-testing-detail__funnel-swatch" :style="{ background: row.color }"></span>
+                                            {{ row.key }}
+                                        </span>
+                                        <span class="rc-ab-testing-detail__funnel-track">
+                                            <span
+                                                class="rc-ab-testing-detail__funnel-fill"
+                                                :style="{ width: (row.share * 100) + '%', background: row.color }"></span>
+                                        </span>
+                                        <span class="rc-ab-testing-detail__funnel-num">
+                                            {{ row.count }} · {{ formatRate(row.share) }}
+                                            <small v-if="row.drop !== null">{{ formatPercentPoints(row.drop) }}</small>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="rc-ab-testing-detail__chart-hint">{{ $tc('rc-ab-testing.detail.funnelHint') }}</p>
+                    </template>
+                </template>
                 {% endblock %}
             </sw-card>
             {% endblock %}

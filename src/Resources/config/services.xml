@@ -196,6 +196,10 @@
             <argument type="service" id="Doctrine\DBAL\Connection"/>
         </service>
 
+        <service id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator">
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+        </service>
+
         <service id="Ruhrcoder\RcAbTesting\Service\ExperimentLookup">
             <argument type="service" id="rc_ab_experiment.repository"/>
         </service>
@@ -297,6 +301,7 @@
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentTimeSeriesAggregator"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator"/>
             <argument type="service" id="sales_channel.repository"/>

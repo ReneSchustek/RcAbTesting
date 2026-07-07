@@ -11,6 +11,7 @@ use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
 use Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator;
 use Ruhrcoder\RcAbTesting\Service\ExperimentLookup;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentTimeSeriesAggregator;
@@ -42,6 +43,7 @@ final class RcAbExperimentApiController
         private readonly ExperimentStatsAggregator $statsAggregator,
         private readonly ExperimentSegmentAggregator $segmentAggregator,
         private readonly ExperimentTimeSeriesAggregator $timeSeriesAggregator,
+        private readonly ExperimentFunnelAggregator $funnelAggregator,
         private readonly ExperimentEvaluator $evaluator,
         private readonly ExperimentIntegrityValidator $integrityValidator,
         private readonly EntityRepository $salesChannelRepository,
@@ -91,7 +93,37 @@ final class RcAbExperimentApiController
                 'salesChannel' => $this->buildSegment($experiment, ExperimentSegmentAggregator::SALES_CHANNEL, $context),
             ],
             'timeSeries' => $this->buildTimeSeries($experiment),
+            'funnel' => $this->buildFunnel($experiment),
         ]);
+    }
+
+    /**
+     * Funnel je Variante: distinct Besucher je Stufe, Bezugsgroesse sind die
+     * Zuordnungen (Teilnehmer). Die Admin-Ansicht zeigt daraus den Anteil je Stufe
+     * und den Drop-off zwischen den Stufen.
+     *
+     * @return array{stages: list<string>, variants: list<array{technicalKey: string, isControl: bool, assignments: int, stages: list<int>}>}
+     */
+    private function buildFunnel(AbExperimentEntity $experiment): array
+    {
+        $byVariant = $this->funnelAggregator->aggregate($experiment);
+
+        $variants = [];
+        foreach ($this->variants($experiment) as $variant) {
+            $data = $byVariant[$variant->getId()] ?? ['assignments' => 0, 'stages' => []];
+            $stageCounts = [];
+            foreach (ExperimentFunnelAggregator::STAGES as $stage) {
+                $stageCounts[] = $data['stages'][$stage] ?? 0;
+            }
+            $variants[] = [
+                'technicalKey' => $variant->getTechnicalKey(),
+                'isControl' => $variant->isControl(),
+                'assignments' => $data['assignments'],
+                'stages' => $stageCounts,
+            ];
+        }
+
+        return ['stages' => ExperimentFunnelAggregator::STAGES, 'variants' => $variants];
     }
 
     /**

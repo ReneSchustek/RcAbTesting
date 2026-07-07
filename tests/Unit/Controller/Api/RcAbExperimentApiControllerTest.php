@@ -15,6 +15,7 @@ use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
 use Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator;
 use Ruhrcoder\RcAbTesting\Service\ExperimentLookup;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentTimeSeriesAggregator;
@@ -221,6 +222,7 @@ final class RcAbExperimentApiControllerTest extends TestCase
             new ExperimentStatsAggregator($this->assignmentRepository(), $this->connection(5)),
             new ExperimentSegmentAggregator($this->connection(5)),
             new ExperimentTimeSeriesAggregator($this->connection(5)),
+            new ExperimentFunnelAggregator($this->connection(5)),
             new ExperimentEvaluator(new StatisticsCalculator($normal), new SampleSizeCalculator($normal)),
             new ExperimentIntegrityValidator(),
             $this->createMock(EntityRepository::class),

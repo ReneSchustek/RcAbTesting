@@ -32,6 +32,7 @@ Component.register('rc-ab-testing-detail', {
             evaluation: null,
             segments: null,
             timeSeries: null,
+            funnel: null,
             winnerVariantId: null,
             deletedVariantIds: [],
             variantConfigDrafts: {},
@@ -164,7 +165,7 @@ Component.register('rc-ab-testing-detail', {
                 { key: 'overview', label: this.$tc('rc-ab-testing.detail.tabOverview'), available: true },
                 { key: 'segments', label: this.$tc('rc-ab-testing.detail.tabSegments'), available: true },
                 { key: 'time', label: this.$tc('rc-ab-testing.detail.tabTime'), available: true },
-                { key: 'funnel', label: this.$tc('rc-ab-testing.detail.tabFunnel'), available: false },
+                { key: 'funnel', label: this.$tc('rc-ab-testing.detail.tabFunnel'), available: true },
             ];
         },
 
@@ -275,6 +276,49 @@ Component.register('rc-ab-testing-detail', {
             });
 
             return { width, height, bottom: height - padBottom, series, yTicks, xTicks };
+        },
+
+        funnelReady() {
+            return !!this.funnel && this.funnel.variants.some((variant) => variant.assignments > 0);
+        },
+
+        // Render-fertiger Funnel: je Stufe die Varianten-Balken (Anteil an den
+        // Zuordnungen als Basis) + Drop-off zur vorherigen Stufe.
+        funnelView() {
+            if (!this.funnelReady) {
+                return null;
+            }
+            const palette = ['#189eff', '#8b5cf6', '#e67e22', '#16a085'];
+            let variantColorIndex = 0;
+            const variants = this.funnel.variants.map((variant) => ({
+                key: variant.technicalKey,
+                isControl: variant.isControl,
+                assignments: variant.assignments,
+                stages: variant.stages,
+                color: variant.isControl ? '#8595a4' : palette[(variantColorIndex++) % palette.length],
+            }));
+
+            const stages = this.funnel.stages.map((stageKey, stageIndex) => ({
+                key: stageKey,
+                label: this.funnelStageLabel(stageKey),
+                rows: variants.map((variant) => {
+                    const count = variant.stages[stageIndex] || 0;
+                    const share = variant.assignments > 0 ? count / variant.assignments : 0;
+                    const previousShare = stageIndex > 0 && variant.assignments > 0
+                        ? (variant.stages[stageIndex - 1] || 0) / variant.assignments
+                        : null;
+                    return {
+                        key: variant.key,
+                        isControl: variant.isControl,
+                        color: variant.color,
+                        count,
+                        share,
+                        drop: previousShare === null ? null : share - previousShare,
+                    };
+                }),
+            }));
+
+            return { variants, stages };
         },
 
         controlStatsRow() {
@@ -627,6 +671,7 @@ Component.register('rc-ab-testing-detail', {
                 this.evaluation = response.data.evaluation;
                 this.segments = response.data.segments || null;
                 this.timeSeries = response.data.timeSeries || null;
+                this.funnel = response.data.funnel || null;
             } catch (error) {
                 this.createNotificationError({ message: this.serverError(error, 'rc-ab-testing.detail.statsError') });
             }
@@ -710,6 +755,23 @@ Component.register('rc-ab-testing-detail', {
         shortDate(date) {
             const parts = date.split('-');
             return parts.length === 3 ? `${parts[2]}.${parts[1]}` : date;
+        },
+
+        // Sprechendes Label je Funnel-Stufe (Event-Typ -> Snippet).
+        funnelStageLabel(stageKey) {
+            const map = {
+                'page.viewed': 'rc-ab-testing.detail.funnelStageViewed',
+                'product.added_to_cart': 'rc-ab-testing.detail.funnelStageCart',
+                'checkout.started': 'rc-ab-testing.detail.funnelStageCheckout',
+                'checkout.order_placed': 'rc-ab-testing.detail.funnelStagePurchase',
+            };
+
+            return map[stageKey] ? this.$tc(map[stageKey]) : stageKey;
+        },
+
+        // Drop-off in Prozentpunkten (immer als Verlust dargestellt).
+        formatPercentPoints(delta) {
+            return `${(delta * 100).toFixed(1)} Pp.`;
         },
 
         // Wandelt ein Server-Segment in eine render-fertige Ansicht: sprechendes

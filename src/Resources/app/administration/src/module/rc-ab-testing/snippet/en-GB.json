@@ -78,6 +78,13 @@
             "timeEmpty": "No data yet for the time series.",
             "timeCaption": "Cumulative trend of {metric} per variant over time.",
             "timeHint": "Cumulative: noisy early (few visitors), stabilises over time — this distinguishes an early signal from a reliable trend.",
+            "funnelEmpty": "No funnel events yet.",
+            "funnelCaption": "Share of visitors at each funnel stage (base: all assignments of the variant).",
+            "funnelHint": "This shows WHERE a variant loses visitors. The percentage-point value is the loss versus the previous stage.",
+            "funnelStageViewed": "Page viewed",
+            "funnelStageCart": "Added to cart",
+            "funnelStageCheckout": "Checkout started",
+            "funnelStagePurchase": "Purchase completed",
             "device": {
                 "desktop": "Desktop",
                 "mobile": "Mobile",

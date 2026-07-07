@@ -291,4 +291,83 @@
         padding-left: 12px;
         border-left: 2px solid #cdd7e0;
     }
+
+    // Funnel-Tab.
+    &__funnel {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    &__funnel-stage {
+        display: grid;
+        grid-template-columns: 170px 1fr;
+        gap: 16px;
+        align-items: center;
+        padding: 8px 0;
+
+        & + & {
+            border-top: 1px dashed #e4e8ec;
+        }
+    }
+
+    &__funnel-stage-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #2b3d4f;
+    }
+
+    &__funnel-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    &__funnel-bar {
+        display: grid;
+        grid-template-columns: 92px 1fr 150px;
+        gap: 12px;
+        align-items: center;
+    }
+
+    &__funnel-who {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        color: #52667a;
+    }
+
+    &__funnel-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex: 0 0 auto;
+    }
+
+    &__funnel-track {
+        height: 20px;
+        background: #f4f6f8;
+        border: 1px solid #e4e8ec;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    &__funnel-fill {
+        display: block;
+        height: 100%;
+        min-width: 2px;
+    }
+
+    &__funnel-num {
+        font-size: 12px;
+        color: #2b3d4f;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+
+        small {
+            color: #94a6b8;
+            margin-left: 4px;
+        }
+    }
 }

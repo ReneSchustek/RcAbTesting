@@ -78,6 +78,13 @@
             "timeEmpty": "Für den Zeitverlauf liegen noch keine Daten vor.",
             "timeCaption": "Kumulativer Verlauf von {metric} je Variante über die Zeit.",
             "timeHint": "Kumulativ: früh (wenige Besucher) noch verrauscht, stabilisiert sich mit der Zeit — so lässt sich ein Frühsignal von einem belastbaren Trend unterscheiden.",
+            "funnelEmpty": "Für den Funnel liegen noch keine Ereignisse vor.",
+            "funnelCaption": "Anteil der Besucher je Trichter-Stufe (Basis: alle Zuordnungen der Variante).",
+            "funnelHint": "So wird sichtbar, WO eine Variante Besucher verliert. Die Prozentpunkte-Angabe zeigt den Verlust gegenüber der vorherigen Stufe.",
+            "funnelStageViewed": "Seite angesehen",
+            "funnelStageCart": "In den Warenkorb",
+            "funnelStageCheckout": "Checkout gestartet",
+            "funnelStagePurchase": "Kauf abgeschlossen",
             "device": {
                 "desktop": "Desktop",
                 "mobile": "Mobil",
