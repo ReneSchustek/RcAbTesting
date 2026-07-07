@@ -33,12 +33,19 @@
             "testTypeFeatureFlag": "Feature-Flag (Entwickler)",
             "testTypeCms": "Zwei Seiten vergleichen (ohne Code)",
             "testTypeCmsHint": "Pro Variante wählst Du unten eine fertige Seite (Erlebniswelt) aus — kein Code nötig.",
+            "testTypeSwitch": "Plugin-Verhalten schalten (ohne Code)",
+            "testTypeSwitchHint": "Pro Variante wählst Du einen Wert für einen Frontend-Schalter (z. B. die Checkout-Darstellung). Ein Plugin liest den Wert und passt sein Verhalten an.",
             "testTypeDevHint": "Entwickler-Test-Typ: die Ausgestaltung je Variante wird als JSON hinterlegt.",
+            "switchSelect": "Schalter",
+            "switchSelectHelp": "Welches Frontend-Verhalten der Test steuert.",
+            "variantSwitchPlaceholder": "Wert wählen …",
+            "variantSwitchHelp": "Der Wert des Schalters für diese Variante.",
             "hypothesisPlaceholder": "Was erwartest Du? Z. B. „Das Hero-Video erhöht die Käufe.“",
             "advancedToggle": "Erweiterte Einstellungen anzeigen",
             "technicalKeyHelp": "Interner Schlüssel. Leer lassen — wird automatisch aus dem Namen erzeugt.",
             "trafficHelp": "Anteil der Besucher, die am Test teilnehmen (der Rest sieht die normale Seite).",
             "variantPage": "Seite",
+            "variantValue": "Wert",
             "traffic": "Traffic-Anteil (%)",
             "targetSignificance": "Ziel-Signifikanz",
             "variantsTitle": "Varianten",
@@ -159,6 +166,13 @@
                 "weightSum": "Die Varianten-Gewichte müssen zusammen 100 ergeben.",
                 "controlCount": "Ein Experiment braucht genau eine Control-Variante.",
                 "cmsPageMissing": "Bei einem CMS-Seiten-Test braucht jede Variante eine ausgewählte CMS-Seite."
+            }
+        },
+        "switch": {
+            "checkoutLayout": {
+                "label": "Checkout-Darstellung",
+                "onePage": "Eine Seite",
+                "guided": "Schrittweise geführt"
             }
         }
     }

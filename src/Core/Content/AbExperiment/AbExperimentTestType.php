@@ -16,6 +16,14 @@ final class AbExperimentTestType
     public const FEATURE_FLAG = 'feature_flag';
 
     /**
+     * No-Code-Variante: pro Variante wird ein registrierter Frontend-Schalter auf
+     * einen Wert gesetzt (z. B. Checkout „eine Seite" vs. „gefuehrt"). Der Wert
+     * landet in `config.<switchKey>`; das konsumierende Plugin liest ihn ueber
+     * `ab_variant_config`. Siehe {@see \Ruhrcoder\RcAbTesting\Service\FrontendSwitch}.
+     */
+    public const FRONTEND_SWITCH = 'frontend_switch';
+
+    /**
      * No-Code-Variante: jede Variante traegt in `config.cmsPageId` eine CMS-Seite
      * (Erlebniswelt). Der CmsPageVariantSubscriber liefert je Zuweisung die
      * passende Seite aus. Kein Twig/Theme noetig.
@@ -35,6 +43,7 @@ final class AbExperimentTestType
         self::THEME,
         self::FEATURE_FLAG,
         self::CMS_PAGE,
+        self::FRONTEND_SWITCH,
     ];
 
     private function __construct()

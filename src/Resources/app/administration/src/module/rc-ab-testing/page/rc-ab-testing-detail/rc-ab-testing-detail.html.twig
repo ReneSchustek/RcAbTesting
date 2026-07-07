@@ -31,6 +31,14 @@
                     :label="$tc('rc-ab-testing.detail.testType')">
                 </sw-single-select>
                 <p v-if="testTypeHint" class="rc-ab-testing-detail__field-hint">{{ testTypeHint }}</p>
+                <sw-single-select
+                    v-if="isSwitchTest"
+                    :value="selectedSwitchKey"
+                    :options="switchSelectOptions"
+                    :label="$tc('rc-ab-testing.detail.switchSelect')"
+                    :help-text="$tc('rc-ab-testing.detail.switchSelectHelp')"
+                    @update:value="setSelectedSwitch">
+                </sw-single-select>
                 <sw-textarea-field
                     v-model:value="experiment.hypothesis"
                     :label="$tc('rc-ab-testing.detail.hypothesis')"
@@ -119,8 +127,17 @@
                         <sw-checkbox-field v-model:value="item.isControl"></sw-checkbox-field>
                     </template>
                     <template #column-config="{ item }">
+                        <sw-single-select
+                            v-if="isSwitchTest"
+                            :value="variantSwitchValue(item)"
+                            :options="switchValueOptions"
+                            show-clearable-button
+                            :placeholder="$tc('rc-ab-testing.detail.variantSwitchPlaceholder')"
+                            :help-text="$tc('rc-ab-testing.detail.variantSwitchHelp')"
+                            @update:value="value => setVariantSwitchValue(item, value)">
+                        </sw-single-select>
                         <sw-entity-single-select
-                            v-if="isCmsTest"
+                            v-else-if="isCmsTest"
                             entity="cms_page"
                             :value="variantCmsPageId(item)"
                             show-clearable-button

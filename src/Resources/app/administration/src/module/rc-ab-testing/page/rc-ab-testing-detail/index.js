@@ -44,6 +44,9 @@ Component.register('rc-ab-testing-detail', {
             // Targeting, Scheduling, Gewichte, Roh-JSON) erst auf Wunsch zeigen —
             // die Standardansicht bleibt fuer Nicht-Techniker verstaendlich.
             showAdvanced: false,
+            // Registrierte Frontend-Schalter (AB30) + aktuell gewaehlter Schalter.
+            frontendSwitches: [],
+            selectedSwitchKey: null,
         };
     },
 
@@ -70,6 +73,7 @@ Component.register('rc-ab-testing-detail', {
         testTypeOptions() {
             return [
                 { value: 'cms_page', label: this.$tc('rc-ab-testing.detail.testTypeCms') },
+                { value: 'frontend_switch', label: this.$tc('rc-ab-testing.detail.testTypeSwitch') },
                 { value: 'twig', label: this.$tc('rc-ab-testing.detail.testTypeTwig') },
                 { value: 'theme', label: this.$tc('rc-ab-testing.detail.testTypeTheme') },
                 { value: 'feature_flag', label: this.$tc('rc-ab-testing.detail.testTypeFeatureFlag') },
@@ -80,6 +84,7 @@ Component.register('rc-ab-testing-detail', {
         testTypeHint() {
             const hints = {
                 cms_page: 'rc-ab-testing.detail.testTypeCmsHint',
+                frontend_switch: 'rc-ab-testing.detail.testTypeSwitchHint',
                 twig: 'rc-ab-testing.detail.testTypeDevHint',
                 theme: 'rc-ab-testing.detail.testTypeDevHint',
                 feature_flag: 'rc-ab-testing.detail.testTypeDevHint',
@@ -87,6 +92,25 @@ Component.register('rc-ab-testing-detail', {
             const key = this.experiment ? hints[this.experiment.testType] : null;
 
             return key ? this.$tc(key) : '';
+        },
+
+        isSwitchTest() {
+            return this.experiment ? this.experiment.testType === 'frontend_switch' : false;
+        },
+
+        // Auswahl der registrierten Schalter (Test-Typ „Frontend-Schalter").
+        switchSelectOptions() {
+            return this.frontendSwitches.map((entry) => ({ value: entry.key, label: this.$tc(entry.label) }));
+        },
+
+        // Erlaubte Werte des aktuell gewaehlten Schalters (je Variante waehlbar).
+        switchValueOptions() {
+            const active = this.frontendSwitches.find((entry) => entry.key === this.selectedSwitchKey);
+            if (!active) {
+                return [];
+            }
+
+            return active.options.map((option) => ({ value: option.value, label: this.$tc(option.label) }));
         },
 
         // Beim CMS-Seiten-Test waehlt der Betreuer je Variante eine CMS-Seite per
@@ -459,9 +483,12 @@ Component.register('rc-ab-testing-detail', {
         // technischer Schluessel und Gewicht erst im Experten-Modus (Gewichte
         // werden ohnehin automatisch 50:50 verteilt).
         variantColumns() {
-            const configLabel = this.isCmsTest
-                ? this.$tc('rc-ab-testing.detail.variantPage')
-                : this.$tc('rc-ab-testing.detail.variantConfig');
+            let configLabel = this.$tc('rc-ab-testing.detail.variantConfig');
+            if (this.isCmsTest) {
+                configLabel = this.$tc('rc-ab-testing.detail.variantPage');
+            } else if (this.isSwitchTest) {
+                configLabel = this.$tc('rc-ab-testing.detail.variantValue');
+            }
             const name = { property: 'name', label: this.$tc('rc-ab-testing.detail.variantName') };
             const config = { property: 'config', label: configLabel };
             const control = { property: 'isControl', label: this.$tc('rc-ab-testing.detail.variantControl') };
@@ -535,6 +562,7 @@ Component.register('rc-ab-testing-detail', {
 
     created() {
         this.loadExperiment();
+        this.loadFrontendSwitches();
     },
 
     methods: {
@@ -559,6 +587,7 @@ Component.register('rc-ab-testing-detail', {
                         this.variantConfigDrafts[variant.id] = variant.config ? JSON.stringify(variant.config) : '';
                     });
                 }
+                this.initSwitchSelection();
             } catch (error) {
                 this.createNotificationError({ message: this.$tc('rc-ab-testing.detail.loadError') });
             } finally {
@@ -645,6 +674,76 @@ Component.register('rc-ab-testing-detail', {
 
         setVariantCmsPageId(variant, cmsPageId) {
             this.setVariantConfigDraft(variant.id, cmsPageId ? JSON.stringify({ cmsPageId }) : '');
+        },
+
+        // Laedt die registrierten Frontend-Schalter (AB30) fuer die Auswahl beim
+        // Test-Typ „Frontend-Schalter". Fehlschlag ist unkritisch — dann bleibt die
+        // Auswahl leer, die uebrige Seite funktioniert.
+        async loadFrontendSwitches() {
+            try {
+                const response = await this.httpClient.get('/_action/rc-ab-testing/frontend-switches', { headers: this.apiHeaders });
+                this.frontendSwitches = response.data.switches || [];
+                this.initSwitchSelection();
+            } catch (error) {
+                this.frontendSwitches = [];
+            }
+        },
+
+        // Waehlt den aktiven Schalter vor: aus einer vorhandenen Varianten-Config
+        // abgeleitet (Bearbeiten) oder der erste registrierte Schalter (Neuanlage).
+        initSwitchSelection() {
+            if (this.selectedSwitchKey || !this.frontendSwitches.length || !this.experiment) {
+                return;
+            }
+            let derived = null;
+            (this.experiment.variants || []).forEach((variant) => {
+                const draft = this.variantConfigDrafts[variant.id];
+                if (!draft) {
+                    return;
+                }
+                try {
+                    const parsed = JSON.parse(draft);
+                    Object.keys(parsed || {}).forEach((key) => {
+                        if (this.frontendSwitches.some((entry) => entry.key === key)) {
+                            derived = key;
+                        }
+                    });
+                } catch (error) {
+                    // ungueltiges JSON ignorieren
+                }
+            });
+            this.selectedSwitchKey = derived || this.frontendSwitches[0].key;
+        },
+
+        setSelectedSwitch(key) {
+            this.selectedSwitchKey = key;
+            // Die gesetzten Werte gehoeren zum vorher gewaehlten Schalter — beim
+            // Wechsel zuruecksetzen, damit keine fremden Config-Keys stehen bleiben.
+            (this.experiment.variants || []).forEach((variant) => {
+                this.setVariantConfigDraft(variant.id, '');
+            });
+        },
+
+        // Schalter-Wert je Variante ueber den Config-Draft (analog CMS-Picker): die
+        // Config traegt dann `{ <switchKey>: <value> }`.
+        variantSwitchValue(variant) {
+            const draft = (this.variantConfigDrafts[variant.id] || '').trim();
+            if (draft === '' || !this.selectedSwitchKey) {
+                return null;
+            }
+            try {
+                const parsed = JSON.parse(draft);
+                return parsed && parsed[this.selectedSwitchKey] ? parsed[this.selectedSwitchKey] : null;
+            } catch (error) {
+                return null;
+            }
+        },
+
+        setVariantSwitchValue(variant, value) {
+            this.setVariantConfigDraft(
+                variant.id,
+                value && this.selectedSwitchKey ? JSON.stringify({ [this.selectedSwitchKey]: value }) : '',
+            );
         },
 
         // Wendet die JSON-Config-Entwürfe auf die Varianten an. Liefert false und

@@ -1,5 +1,13 @@
 # Changelog (DE)
 
+## [1.9.0] - 2026-07-07
+
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.
+
+### Admin
+
+- **Gefuehrte Anlage (verstaendliche Bedienung):** Die Detailseite ist fuer Nicht-Techniker aufgeraeumt. Die Standardansicht zeigt nur die verstaendlichen Felder — **„Was moechtest Du testen?"** mit Klartext-Test-Typen und Erklaerung (No-Code „Zwei Seiten vergleichen" zuerst), Hypothese mit Beispiel, Traffic-Anteil mit Hilfe und die Varianten. Technische Felder (technischer Schluessel, Ziel-Signifikanz, Targeting, Zeitplan, Gewichte, Roh-JSON) sind hinter **„Erweiterte Einstellungen anzeigen"** eingeklappt. Der technische Schluessel wird bei Bedarf automatisch aus dem Namen erzeugt, die Gewichte automatisch 50:50 verteilt.
+
 ## [1.8.0] - 2026-07-07
 
 > **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.

@@ -10,6 +10,7 @@ use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentStatus;
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
 use Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator;
 use Ruhrcoder\RcAbTesting\Service\ExperimentLookup;
+use Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchRegistry;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator;
@@ -47,7 +48,33 @@ final class RcAbExperimentApiController
         private readonly ExperimentEvaluator $evaluator,
         private readonly ExperimentIntegrityValidator $integrityValidator,
         private readonly EntityRepository $salesChannelRepository,
+        private readonly FrontendSwitchRegistry $frontendSwitchRegistry,
     ) {
+    }
+
+    /**
+     * Liste der registrierten Frontend-Schalter fuer die Admin-Oberflaeche (beim
+     * Test-Typ „Frontend-Schalter"). Labels sind Snippet-Schluessel — der Admin
+     * lokalisiert. Kein ACL-Update noetig: read-Recht auf Experimente genuegt.
+     */
+    #[Route(
+        path: '/api/_action/rc-ab-testing/frontend-switches',
+        name: 'api.action.rc-ab-testing.frontend-switches',
+        methods: ['GET'],
+        defaults: ['_acl' => ['rc_ab_experiment:read']],
+    )]
+    public function frontendSwitches(): JsonResponse
+    {
+        $switches = array_map(
+            static fn ($switch): array => [
+                'key' => $switch->getKey(),
+                'label' => $switch->getLabel(),
+                'options' => $switch->getOptions(),
+            ],
+            $this->frontendSwitchRegistry->all(),
+        );
+
+        return new JsonResponse(['switches' => $switches]);
     }
 
     #[Route(

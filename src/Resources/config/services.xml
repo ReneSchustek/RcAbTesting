@@ -182,6 +182,15 @@
 
         <service id="Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator"/>
 
+        <!-- Frontend-Schalter-Registry (AB30): getaggte, frontend-wirksame Schalter. -->
+        <service id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\CheckoutLayoutSwitch">
+            <tag name="rc_ab_testing.frontend_switch"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchRegistry">
+            <argument type="tagged_iterator" tag="rc_ab_testing.frontend_switch"/>
+        </service>
+
         <!-- Aggregator, Lookup und CLI-Commands. -->
         <service id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator">
             <argument type="service" id="rc_ab_assignment.repository"/>
@@ -305,6 +314,7 @@
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator"/>
             <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchRegistry"/>
             <tag name="controller.service_arguments"/>
         </service>
     </services>

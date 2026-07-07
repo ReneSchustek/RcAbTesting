@@ -13,6 +13,8 @@ use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentStatus;
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantCollection;
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
 use Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator;
+use Ruhrcoder\RcAbTesting\Service\FrontendSwitch\CheckoutLayoutSwitch;
+use Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchRegistry;
 use Ruhrcoder\RcAbTesting\Service\ExperimentLookup;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator;
@@ -226,6 +228,7 @@ final class RcAbExperimentApiControllerTest extends TestCase
             new ExperimentEvaluator(new StatisticsCalculator($normal), new SampleSizeCalculator($normal)),
             new ExperimentIntegrityValidator(),
             $this->createMock(EntityRepository::class),
+            new FrontendSwitchRegistry([new CheckoutLayoutSwitch()]),
         );
     }
 
