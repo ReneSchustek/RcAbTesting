@@ -1,0 +1,136 @@
+.rc-ab-testing-detail {
+    &__decision {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+
+        .sw-single-select {
+            min-width: 260px;
+        }
+    }
+
+    &__decision-label {
+        font-weight: 600;
+        color: #52667a;
+    }
+
+    // Detail-Tab-Leiste der Auswertung (reiner Ansichtswechsel in der Karte).
+    &__tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid #d1d9e0;
+        margin-bottom: 20px;
+    }
+
+    &__tab {
+        appearance: none;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        padding: 10px 16px;
+        font: inherit;
+        font-weight: 600;
+        color: #758ca3;
+        cursor: pointer;
+
+        &:hover:not(.is--disabled) {
+            color: #34495e;
+        }
+
+        &.is--active {
+            color: #189eff;
+            border-bottom-color: #189eff;
+        }
+
+        &.is--disabled {
+            color: #b6c2ce;
+            cursor: not-allowed;
+        }
+    }
+
+    &__tab-hint {
+        display: inline-block;
+        margin-left: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #94a6b8;
+    }
+
+    // Kennzahl-Karten der Uebersicht.
+    &__metric-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    &__metric-card {
+        border: 1px solid #d1d9e0;
+        border-radius: 6px;
+        padding: 14px;
+        background: #f9fafb;
+
+        &.is--primary {
+            border-color: #7fc2f7;
+            background: #eaf4fd;
+        }
+    }
+
+    &__metric-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #52667a;
+        margin-bottom: 6px;
+    }
+
+    &__metric-tag {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #ffffff;
+        background: #189eff;
+        border-radius: 4px;
+        padding: 1px 6px;
+    }
+
+    &__metric-value {
+        font-size: 22px;
+        font-weight: 600;
+        color: #2b3d4f;
+    }
+
+    &__metric-uplift {
+        margin-top: 4px;
+        font-size: 13px;
+        font-weight: 600;
+
+        &.is--up {
+            color: #1a8a4f;
+        }
+
+        &.is--down {
+            color: #c0392b;
+        }
+
+        &.is--flat {
+            color: #758ca3;
+        }
+    }
+
+    &__placeholder {
+        padding: 32px;
+        text-align: center;
+        color: #758ca3;
+    }
+
+    &__verdict {
+        margin-bottom: 20px;
+    }
+}

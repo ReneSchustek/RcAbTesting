@@ -34,7 +34,7 @@ final class ExperimentStatsAggregator
     }
 
     /**
-     * @return array<string, array{assignments: int, conversions: int, orders: int, revenue: float}>
+     * @return array<string, array{assignments: int, conversions: int, orders: int, revenue: float, revenueSumSq: float}>
      */
     public function aggregate(AbExperimentEntity $experiment, Context $context): array
     {
@@ -44,6 +44,7 @@ final class ExperimentStatsAggregator
         foreach ($this->variants($experiment) as $variant) {
             $assignments = $this->countAssignments($experiment->getId(), $variant->getId(), $context);
             $conversions = $this->countConvertingVisitors($experiment->getId(), $variant->getId(), $primaryMetric);
+            $revenue = $this->revenuePerVisitorTotals($experiment->getId(), $variant->getId(), $primaryMetric);
             $stats[$variant->getId()] = [
                 'assignments' => $assignments,
                 'conversions' => \min($conversions, $assignments),
@@ -51,7 +52,11 @@ final class ExperimentStatsAggregator
                 // Basis fuer den durchschnittlichen Bestellwert; Umsatz = Summe der
                 // mitgetrackten Bestellwerte (event_value).
                 'orders' => $this->countOrders($experiment->getId(), $variant->getId(), $primaryMetric),
-                'revenue' => $this->sumRevenue($experiment->getId(), $variant->getId(), $primaryMetric),
+                // Umsatz je Variante und Quadratsumme des Umsatzes je Besucher —
+                // Letztere ist die Varianz-Basis fuer den Mittelwert-Signifikanztest
+                // auf „Umsatz pro Besucher".
+                'revenue' => $revenue['sum'],
+                'revenueSumSq' => $revenue['sumSquares'],
             ];
         }
 
@@ -116,16 +121,29 @@ final class ExperimentStatsAggregator
     }
 
     /**
-     * Summe der mitgetrackten Bestellwerte (event_value) — der Umsatz je Variante.
+     * Umsatz je Variante: Summe und Quadratsumme des Umsatzes **je Besucher**.
+     * Erst wird der Umsatz je Besucher aufsummiert (ein Besucher mit zwei
+     * Bestellungen zählt als ein Wert), dann über die Besucher summiert bzw.
+     * quadriert. Die Quadratsumme ist die Varianz-Basis für den Mittelwert-
+     * Signifikanztest; nicht-konvertierende Besucher tragen 0 bei und werden erst
+     * im Evaluator über die Zuordnungszahl (Nenner) berücksichtigt. Bewusst als
+     * ein aggregierender SQL-Lauf statt DAL-Materialisierung der Einzelwerte.
+     *
+     * @return array{sum: float, sumSquares: float}
      */
-    private function sumRevenue(string $experimentId, string $variantId, string $eventType): float
+    private function revenuePerVisitorTotals(string $experimentId, string $variantId, string $eventType): array
     {
-        $sum = $this->connection->fetchOne(
-            'SELECT COALESCE(SUM(event_value), 0)
-             FROM rc_ab_event
-             WHERE experiment_id = :experimentId
-               AND variant_id = :variantId
-               AND event_type = :eventType',
+        $row = $this->connection->fetchAssociative(
+            'SELECT COALESCE(SUM(visitor_revenue), 0) AS sum,
+                    COALESCE(SUM(visitor_revenue * visitor_revenue), 0) AS sum_squares
+             FROM (
+                 SELECT SUM(event_value) AS visitor_revenue
+                 FROM rc_ab_event
+                 WHERE experiment_id = :experimentId
+                   AND variant_id = :variantId
+                   AND event_type = :eventType
+                 GROUP BY visitor_id
+             ) AS per_visitor',
             [
                 'experimentId' => Uuid::fromHexToBytes($experimentId),
                 'variantId' => Uuid::fromHexToBytes($variantId),
@@ -133,7 +151,11 @@ final class ExperimentStatsAggregator
             ],
         );
 
-        return (float) $sum;
+        if ($row === false) {
+            return ['sum' => 0.0, 'sumSquares' => 0.0];
+        }
+
+        return ['sum' => (float) $row['sum'], 'sumSquares' => (float) $row['sum_squares']];
     }
 
     /**

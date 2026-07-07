@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruhrcoder\RcAbTesting\Service\Stats;
 
+use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbDecisionMetric;
 use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentEntity;
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
 
@@ -26,10 +27,11 @@ final class ExperimentEvaluator
     }
 
     /**
-     * @param array<string, array{assignments: int, conversions: int}> $stats
+     * @param array<string, array{assignments: int, conversions: int, revenue?: float, revenueSumSq?: float}> $stats
      *
      * @return array{
      *     controlKey: string|null,
+     *     decisionMetric: string,
      *     confidenceLevel: float,
      *     minSampleSize: int,
      *     sampleRatioMismatch: bool|null,
@@ -41,14 +43,18 @@ final class ExperimentEvaluator
     {
         $variants = $this->variants($experiment);
         $confidenceLevel = $experiment->getTargetSignificance();
+        // Ohne explizite Entscheidungs-Kennzahl (z. B. Alt-Experimente, reine
+        // Unit-Test-Entities) auf die Conversion-Rate zurückfallen — die braucht
+        // nur Zuordnungen/Conversions und ist damit immer berechenbar.
+        $decisionMetric = $experiment->getDecisionMetric() ?? AbDecisionMetric::CONVERSION_RATE;
         $control = $this->findControl($variants);
 
         $comparisons = [];
         $winnerKey = null;
-        $winnerRate = $control !== null ? $this->rate($stats, $control) : 0.0;
 
         if ($control !== null) {
             $controlStats = $this->statsFor($stats, $control);
+            $winnerValue = $this->metricValue($controlStats, $decisionMetric);
 
             foreach ($variants as $variant) {
                 if ($variant->getId() === $control->getId()) {
@@ -56,27 +62,12 @@ final class ExperimentEvaluator
                 }
 
                 $variantStats = $this->statsFor($stats, $variant);
-                $result = $this->statistics->calculate(
-                    $controlStats['assignments'],
-                    $controlStats['conversions'],
-                    $variantStats['assignments'],
-                    $variantStats['conversions'],
-                    $confidenceLevel,
-                );
+                $comparison = $this->compare($controlStats, $variantStats, $confidenceLevel, $decisionMetric);
+                $comparisons[] = ['id' => $variant->getId(), 'variantKey' => $variant->getTechnicalKey()] + $comparison;
 
-                $comparisons[] = [
-                    'id' => $variant->getId(),
-                    'variantKey' => $variant->getTechnicalKey(),
-                    'lift' => $result['lift'],
-                    'pValue' => $result['p_value'],
-                    'ciLower' => $result['b']['ci_lower'] ?? null,
-                    'ciUpper' => $result['b']['ci_upper'] ?? null,
-                    'significant' => $result['significant'],
-                    'requiredSamplePerVariant' => $this->requiredSample($controlStats, $result['lift'], $confidenceLevel),
-                ];
-
-                if ($result['significant'] && $this->rate($stats, $variant) > $winnerRate) {
-                    $winnerRate = $this->rate($stats, $variant);
+                $variantValue = $this->metricValue($variantStats, $decisionMetric);
+                if ($comparison['significant'] && $variantValue > $winnerValue) {
+                    $winnerValue = $variantValue;
                     $winnerKey = $variant->getTechnicalKey();
                 }
             }
@@ -84,6 +75,7 @@ final class ExperimentEvaluator
 
         return [
             'controlKey' => $control?->getTechnicalKey(),
+            'decisionMetric' => $decisionMetric,
             'confidenceLevel' => $confidenceLevel,
             'minSampleSize' => $experiment->getMinSampleSize() ?? 0,
             'sampleRatioMismatch' => $this->detectSampleRatioMismatch($variants, $stats),
@@ -93,13 +85,76 @@ final class ExperimentEvaluator
     }
 
     /**
-     * Benötigte Fallzahl je Variante, um den aktuell beobachteten Lift beim
-     * konfigurierten Niveau mit 80 % Power zu bestätigen. 0, wenn (noch) kein
-     * positiver Lift vorliegt.
+     * Führt den zur Entscheidungs-Kennzahl passenden Signifikanztest: Proportionen-
+     * z-Test für die Conversion-Rate, Mittelwert-Vergleich für den Umsatz je
+     * Besucher. Liefert die für die Auswertungstabelle einheitlichen Felder.
      *
-     * @param array{assignments: int, conversions: int} $controlStats
+     * @param array{assignments: int, conversions: int, revenue: float, revenueSumSq: float} $controlStats
+     * @param array{assignments: int, conversions: int, revenue: float, revenueSumSq: float} $variantStats
+     *
+     * @return array{lift: float|null, pValue: float|null, ciLower: float|null, ciUpper: float|null, significant: bool, requiredSamplePerVariant: int}
      */
-    private function requiredSample(array $controlStats, ?float $lift, float $confidenceLevel): int
+    private function compare(array $controlStats, array $variantStats, float $confidenceLevel, string $decisionMetric): array
+    {
+        if (AbDecisionMetric::isMeanBased($decisionMetric)) {
+            $result = $this->statistics->compareMeans(
+                $controlStats['assignments'],
+                $controlStats['revenue'],
+                $controlStats['revenueSumSq'],
+                $variantStats['assignments'],
+                $variantStats['revenue'],
+                $variantStats['revenueSumSq'],
+                $confidenceLevel,
+            );
+            $requiredSample = $this->requiredMeanSample($controlStats, $variantStats, $confidenceLevel);
+        } else {
+            $result = $this->statistics->calculate(
+                $controlStats['assignments'],
+                $controlStats['conversions'],
+                $variantStats['assignments'],
+                $variantStats['conversions'],
+                $confidenceLevel,
+            );
+            $requiredSample = $this->requiredRateSample($controlStats, $result['lift'], $confidenceLevel);
+        }
+
+        return [
+            'lift' => $result['lift'],
+            'pValue' => $result['p_value'],
+            'ciLower' => $result['b']['ci_lower'] ?? null,
+            'ciUpper' => $result['b']['ci_upper'] ?? null,
+            'significant' => $result['significant'],
+            'requiredSamplePerVariant' => $requiredSample,
+        ];
+    }
+
+    /**
+     * Der je Entscheidungs-Kennzahl verglichene Wert einer Variante — Conversion-
+     * Rate oder Umsatz je Besucher. Basis für die Gewinner-Bestimmung.
+     *
+     * @param array{assignments: int, conversions: int, revenue: float, revenueSumSq: float} $variantStats
+     */
+    private function metricValue(array $variantStats, string $decisionMetric): float
+    {
+        if ($variantStats['assignments'] <= 0) {
+            return 0.0;
+        }
+
+        if (AbDecisionMetric::isMeanBased($decisionMetric)) {
+            return $variantStats['revenue'] / $variantStats['assignments'];
+        }
+
+        return $variantStats['conversions'] / $variantStats['assignments'];
+    }
+
+    /**
+     * Benötigte Fallzahl je Variante für die Conversion-Rate, um den beobachteten
+     * Lift beim konfigurierten Niveau mit 80 % Power zu bestätigen. 0 ohne
+     * positiven Lift.
+     *
+     * @param array{assignments: int, conversions: int, revenue?: float, revenueSumSq?: float} $controlStats
+     */
+    private function requiredRateSample(array $controlStats, ?float $lift, float $confidenceLevel): int
     {
         if ($lift === null || $lift <= 0.0 || $controlStats['assignments'] <= 0) {
             return 0;
@@ -111,12 +166,35 @@ final class ExperimentEvaluator
     }
 
     /**
+     * Benötigte Fallzahl je Variante für den Umsatz je Besucher, um die beobachtete
+     * Mittelwert-Differenz zu bestätigen. Nutzt Mittelwert und Varianz aus den
+     * aggregierten Summen (eine Ableitung im StatisticsCalculator).
+     *
+     * @param array{assignments: int, conversions: int, revenue: float, revenueSumSq: float} $controlStats
+     * @param array{assignments: int, conversions: int, revenue: float, revenueSumSq: float} $variantStats
+     */
+    private function requiredMeanSample(array $controlStats, array $variantStats, float $confidenceLevel): int
+    {
+        $control = $this->statistics->meanAndVariance($controlStats['revenue'], $controlStats['revenueSumSq'], $controlStats['assignments']);
+        $variant = $this->statistics->meanAndVariance($variantStats['revenue'], $variantStats['revenueSumSq'], $variantStats['assignments']);
+
+        return $this->sampleSize->requiredSizeForMeanDifference(
+            $control['mean'],
+            $variant['mean'],
+            $control['variance'],
+            $variant['variance'],
+            0.8,
+            1.0 - $confidenceLevel,
+        );
+    }
+
+    /**
      * Sample-Ratio-Mismatch: weicht die beobachtete Verteilung signifikant von den
      * konfigurierten Gewichten ab, deutet das auf einen Tracking-/Bucketing-Fehler
      * hin. null, solange zu wenig Daten für eine Aussage vorliegen.
      *
-     * @param list<AbVariantEntity>                                     $variants
-     * @param array<string, array{assignments: int, conversions: int}>  $stats
+     * @param list<AbVariantEntity>                                                                          $variants
+     * @param array<string, array{assignments: int, conversions: int, revenue?: float, revenueSumSq?: float}> $stats
      */
     private function detectSampleRatioMismatch(array $variants, array $stats): ?bool
     {
@@ -162,23 +240,24 @@ final class ExperimentEvaluator
     }
 
     /**
-     * @param array<string, array{assignments: int, conversions: int}> $stats
-     */
-    private function rate(array $stats, AbVariantEntity $variant): float
-    {
-        $variantStats = $this->statsFor($stats, $variant);
-
-        return $variantStats['assignments'] > 0 ? $variantStats['conversions'] / $variantStats['assignments'] : 0.0;
-    }
-
-    /**
-     * @param array<string, array{assignments: int, conversions: int}> $stats
+     * Normalisiert die (evtl. lückenhaften) Zähldaten einer Variante auf die volle
+     * Form — fehlende Umsatz-Felder werden zu 0, damit die Aufrufer ohne Null-Prüfung
+     * rechnen können.
      *
-     * @return array{assignments: int, conversions: int}
+     * @param array<string, array{assignments: int, conversions: int, revenue?: float, revenueSumSq?: float}> $stats
+     *
+     * @return array{assignments: int, conversions: int, revenue: float, revenueSumSq: float}
      */
     private function statsFor(array $stats, AbVariantEntity $variant): array
     {
-        return $stats[$variant->getId()] ?? ['assignments' => 0, 'conversions' => 0];
+        $variantStats = $stats[$variant->getId()] ?? [];
+
+        return [
+            'assignments' => $variantStats['assignments'] ?? 0,
+            'conversions' => $variantStats['conversions'] ?? 0,
+            'revenue' => $variantStats['revenue'] ?? 0.0,
+            'revenueSumSq' => $variantStats['revenueSumSq'] ?? 0.0,
+        ];
     }
 
     /**

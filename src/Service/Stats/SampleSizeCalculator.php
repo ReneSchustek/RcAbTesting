@@ -40,4 +40,25 @@ final class SampleSizeCalculator
 
         return (int) \ceil((($zAlpha + $zBeta) / $effectSize) ** 2);
     }
+
+    /**
+     * Benötigte Fallzahl je Variante, um eine beobachtete Mittelwert-Differenz
+     * einer stetigen Grösse (z. B. Umsatz je Besucher) mit gegebener Power und
+     * Signifikanz zu bestätigen. Klassische Fallzahl-Formel für den Vergleich
+     * zweier Mittelwerte: n = (z_alpha + z_beta)^2 * (var_a + var_b) / diff^2.
+     * 0, wenn keine positive Differenz oder keine Streuung vorliegt.
+     */
+    public function requiredSizeForMeanDifference(float $meanControl, float $meanTreatment, float $varianceControl, float $varianceTreatment, float $power = 0.8, float $alpha = 0.05): int
+    {
+        $difference = $meanTreatment - $meanControl;
+        $varianceSum = $varianceControl + $varianceTreatment;
+        if ($difference <= 0.0 || $varianceSum <= 0.0) {
+            return 0;
+        }
+
+        $zAlpha = $this->normal->ppf(1.0 - $alpha / 2.0);
+        $zBeta = $this->normal->ppf($power);
+
+        return (int) \ceil((($zAlpha + $zBeta) ** 2) * $varianceSum / ($difference ** 2));
+    }
 }

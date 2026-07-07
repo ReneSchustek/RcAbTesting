@@ -43,6 +43,7 @@ final class AbExperimentDefinitionTest extends TestCase
                 'testType',
                 'primaryMetric',
                 'secondaryMetrics',
+                'decisionMetric',
                 'trafficAllocationPct',
                 'minSampleSize',
                 'targetSignificance',

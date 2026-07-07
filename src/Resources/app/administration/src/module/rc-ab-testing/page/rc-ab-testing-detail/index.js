@@ -1,6 +1,13 @@
 import template from './rc-ab-testing-detail.html.twig';
+import './rc-ab-testing-detail.scss';
 
 const { Component, Mixin, Data: { Criteria } } = Shopware;
+
+// Entscheidungs-Kennzahlen (Spiegel von AbDecisionMetric): nur Kennzahlen, die
+// serverseitig sauber auf Signifikanz geprueft werden. Der durchschnittliche
+// Bestellwert bleibt bewusst reine Anzeige-Kennzahl, keine Entscheidungsgrundlage.
+const DECISION_METRIC_CONVERSION = 'conversion_rate';
+const DECISION_METRIC_REVENUE_PER_VISITOR = 'revenue_per_visitor';
 
 Component.register('rc-ab-testing-detail', {
     template,
@@ -28,6 +35,8 @@ Component.register('rc-ab-testing-detail', {
             variantConfigDrafts: {},
             isLoading: false,
             isSaving: false,
+            // Aktiver Auswertungs-Tab (reiner Ansichtswechsel in der Karte).
+            activeStatsTab: 'overview',
         };
     },
 
@@ -74,12 +83,11 @@ Component.register('rc-ab-testing-detail', {
 
             const assignmentsByKey = {};
             this.stats.forEach((row) => { assignmentsByKey[row.technicalKey] = row.assignments; });
-            const controlAssignments = assignmentsByKey[this.evaluation.controlKey] || 0;
 
             return (this.evaluation.comparisons || []).map((comparison) => {
                 const variantAssignments = assignmentsByKey[comparison.variantKey] || 0;
                 const required = comparison.requiredSamplePerVariant || 0;
-                const enoughData = required > 0 && controlAssignments >= required && variantAssignments >= required;
+                const enoughData = this.enoughDataForComparison(comparison);
 
                 if (comparison.significant) {
                     const worse = comparison.lift !== null && comparison.lift < 0;
@@ -111,6 +119,166 @@ Component.register('rc-ab-testing-detail', {
                     }),
                 };
             });
+        },
+
+        // Waehlbare Entscheidungs-Kennzahlen — Umsatz je Besucher als Produkt-Default.
+        decisionMetricOptions() {
+            return [
+                { value: DECISION_METRIC_REVENUE_PER_VISITOR, label: this.$tc('rc-ab-testing.detail.decisionRevenuePerVisitor') },
+                { value: DECISION_METRIC_CONVERSION, label: this.$tc('rc-ab-testing.detail.decisionConversionRate') },
+            ];
+        },
+
+        // Die tatsaechlich zugrunde liegende Entscheidungs-Kennzahl: nach dem Laden
+        // der Auswertung ist der Server maßgeblich, davor die Experiment-Auswahl.
+        currentDecisionMetric() {
+            if (this.evaluation && this.evaluation.decisionMetric) {
+                return this.evaluation.decisionMetric;
+            }
+
+            return (this.experiment && this.experiment.decisionMetric) || DECISION_METRIC_REVENUE_PER_VISITOR;
+        },
+
+        isMeanDecision() {
+            return this.currentDecisionMetric === DECISION_METRIC_REVENUE_PER_VISITOR;
+        },
+
+        decisionMetricLabel() {
+            const option = this.decisionMetricOptions.find((entry) => entry.value === this.currentDecisionMetric);
+
+            return option ? option.label : '';
+        },
+
+        // Scorecard-Spaltenschluessel der Entscheidungs-Kennzahl (fuer Hervorhebung
+        // und Metrik-Karten).
+        primaryMetricKey() {
+            return this.isMeanDecision ? 'revenuePerVisitor' : 'rate';
+        },
+
+        // Detail-Tabs der Auswertung. Nur „Uebersicht" ist in AB32 gefuellt; die
+        // uebrigen Tabs werden in AB31 (Zeitverlauf, Segmente, Funnel) bestueckt.
+        statsTabs() {
+            return [
+                { key: 'overview', label: this.$tc('rc-ab-testing.detail.tabOverview'), available: true },
+                { key: 'time', label: this.$tc('rc-ab-testing.detail.tabTime'), available: false },
+                { key: 'segments', label: this.$tc('rc-ab-testing.detail.tabSegments'), available: false },
+                { key: 'funnel', label: this.$tc('rc-ab-testing.detail.tabFunnel'), available: false },
+            ];
+        },
+
+        controlStatsRow() {
+            return this.stats ? (this.stats.find((row) => row.isControl) || null) : null;
+        },
+
+        // Fuehrende Nicht-Control-Variante nach der Entscheidungs-Kennzahl — Basis
+        // der Metrik-Karten (bei zwei Varianten schlicht die Testvariante).
+        leadingStatsRow() {
+            if (!this.stats) {
+                return null;
+            }
+            const others = this.stats.filter((row) => !row.isControl);
+            if (!others.length) {
+                return null;
+            }
+            const key = this.primaryMetricKey;
+
+            return others.reduce((best, row) => {
+                const bestValue = best[key] === null || best[key] === undefined ? -Infinity : best[key];
+                const rowValue = row[key] === null || row[key] === undefined ? -Infinity : row[key];
+
+                return rowValue > bestValue ? row : best;
+            }, others[0]);
+        },
+
+        // Kennzahl-Karten der Uebersicht: Wert der fuehrenden Variante je Kennzahl
+        // plus Veraenderung zur Control. Entscheidungs-Kennzahl steht vorn und wird
+        // hervorgehoben.
+        metricCards() {
+            const leading = this.leadingStatsRow;
+            if (!leading) {
+                return [];
+            }
+            const control = this.controlStatsRow;
+            const catalog = [
+                { key: 'rate', label: this.$tc('rc-ab-testing.detail.rate'), format: 'rate' },
+                { key: 'revenuePerVisitor', label: this.$tc('rc-ab-testing.detail.revenuePerVisitor'), format: 'currency' },
+                { key: 'aov', label: this.$tc('rc-ab-testing.detail.aov'), format: 'currency' },
+                { key: 'revenue', label: this.$tc('rc-ab-testing.detail.revenue'), format: 'currency' },
+            ];
+            const primary = this.primaryMetricKey;
+            const ordered = catalog.filter((metric) => metric.key === primary)
+                .concat(catalog.filter((metric) => metric.key !== primary));
+
+            return ordered.map((metric) => {
+                const uplift = this.metricUplift(control, leading, metric.key);
+
+                return {
+                    key: metric.key,
+                    label: metric.label,
+                    isPrimary: metric.key === primary,
+                    value: this.formatMetricValue(leading[metric.key], metric.format),
+                    uplift: uplift === null ? null : this.formatLift(uplift),
+                    upliftClass: this.upliftClass(uplift),
+                };
+            });
+        },
+
+        // Ein-Satz-Verdikt aus der serverseitigen Auswertung, bezogen auf die
+        // Entscheidungs-Kennzahl. Ampelfarbe ueber die sw-alert-Variante.
+        verdict() {
+            if (!this.evaluation) {
+                return null;
+            }
+            const metric = this.decisionMetricLabel;
+            const comparisons = this.evaluation.comparisons || [];
+
+            if (this.evaluation.winnerKey) {
+                const winner = comparisons.find((entry) => entry.variantKey === this.evaluation.winnerKey);
+
+                return {
+                    variant: 'success',
+                    text: this.$t('rc-ab-testing.detail.verdictWinner', {
+                        variant: this.evaluation.winnerKey,
+                        lift: this.formatLift(winner ? winner.lift : null),
+                        metric,
+                    }),
+                };
+            }
+
+            const worse = comparisons.find((entry) => entry.significant && entry.lift !== null && entry.lift < 0);
+            if (worse) {
+                return {
+                    variant: 'warning',
+                    text: this.$t('rc-ab-testing.detail.verdictWorse', { variant: worse.variantKey, metric }),
+                };
+            }
+
+            if (comparisons.length && comparisons.every((entry) => !this.enoughDataForComparison(entry))) {
+                return { variant: 'info', text: this.$tc('rc-ab-testing.detail.verdictNotEnoughData') };
+            }
+
+            return { variant: 'info', text: this.$tc('rc-ab-testing.detail.verdictNoDifference') };
+        },
+
+        // Scorecard-Spalten mit der Entscheidungs-Kennzahl vorn und als solche
+        // gekennzeichnet; die uebrigen Kennzahlen als Kontext dahinter.
+        scorecardColumns() {
+            const metricColumns = [
+                { property: 'rate', label: this.$tc('rc-ab-testing.detail.rate') },
+                { property: 'revenuePerVisitor', label: this.$tc('rc-ab-testing.detail.revenuePerVisitor') },
+                { property: 'aov', label: this.$tc('rc-ab-testing.detail.aov') },
+                { property: 'revenue', label: this.$tc('rc-ab-testing.detail.revenue') },
+            ];
+            const primary = this.primaryMetricKey;
+            const primaryColumn = metricColumns.find((column) => column.property === primary);
+            const rest = metricColumns.filter((column) => column.property !== primary);
+
+            return [
+                { property: 'technicalKey', label: this.$tc('rc-ab-testing.detail.variantKey') },
+                { property: 'assignments', label: this.$tc('rc-ab-testing.detail.assignments') },
+                { property: primaryColumn.property, label: `${primaryColumn.label} · ${this.$tc('rc-ab-testing.detail.decisionTag')}` },
+                ...rest,
+            ];
         },
 
         variantColumns() {
@@ -189,6 +357,12 @@ Component.register('rc-ab-testing-detail', {
 
             try {
                 this.experiment = await this.repository.get(this.experimentId, Shopware.Context.api, criteria);
+                // Alt-Experimente ohne gespeicherte Entscheidungs-Kennzahl auf den
+                // Produkt-Default setzen, damit die Auswahl gefuellt ist und beim
+                // Speichern erhalten bleibt.
+                if (this.experiment && !this.experiment.decisionMetric) {
+                    this.experiment.decisionMetric = DECISION_METRIC_REVENUE_PER_VISITOR;
+                }
                 this.winnerVariantId = this.experiment ? this.experiment.winnerVariantId : null;
                 this.deletedVariantIds = [];
                 this.variantConfigDrafts = {};
@@ -362,6 +536,57 @@ Component.register('rc-ab-testing-detail', {
             return (data && data.error) || this.$tc(fallbackKey);
         },
 
+        setActiveStatsTab(key) {
+            this.activeStatsTab = key;
+        },
+
+        // Ob fuer eine Vergleichszeile genug Daten fuer eine Aussage vorliegen —
+        // beide Seiten erreichen die benoetigte Fallzahl. Von Verdikt und
+        // Empfehlung gemeinsam genutzt.
+        enoughDataForComparison(comparison) {
+            if (!this.stats || !this.evaluation) {
+                return false;
+            }
+            const assignmentsByKey = {};
+            this.stats.forEach((row) => { assignmentsByKey[row.technicalKey] = row.assignments; });
+            const controlAssignments = assignmentsByKey[this.evaluation.controlKey] || 0;
+            const variantAssignments = assignmentsByKey[comparison.variantKey] || 0;
+            const required = comparison.requiredSamplePerVariant || 0;
+
+            return required > 0 && controlAssignments >= required && variantAssignments >= required;
+        },
+
+        // Relative Veraenderung einer Kennzahl der Variante gegenueber der Control.
+        // null, wenn kein sinnvoller Bezug moeglich ist (fehlende oder 0-Basis).
+        metricUplift(control, variant, key) {
+            if (!control) {
+                return null;
+            }
+            const base = control[key];
+            const value = variant[key];
+            if (base === null || base === undefined || value === null || value === undefined || base === 0) {
+                return null;
+            }
+
+            return value / base - 1;
+        },
+
+        upliftClass(uplift) {
+            if (uplift === null || uplift === undefined || uplift === 0) {
+                return 'is--flat';
+            }
+
+            return uplift > 0 ? 'is--up' : 'is--down';
+        },
+
+        formatMetricValue(value, format) {
+            if (value === null || value === undefined) {
+                return '–';
+            }
+
+            return format === 'rate' ? this.formatRate(value) : this.formatCurrency(value);
+        },
+
         formatRate(rate) {
             return rate === null ? '–' : `${(rate * 100).toFixed(2)} %`;
         },
@@ -389,9 +614,14 @@ Component.register('rc-ab-testing-detail', {
             return pValue === null || pValue === undefined ? '–' : pValue.toFixed(4);
         },
 
+        // Konfidenzintervall der Variantenkennzahl — bei „Umsatz pro Besucher" in
+        // Euro, bei der Conversion-Rate in Prozent.
         formatInterval(comparison) {
             if (comparison.ciLower === null || comparison.ciUpper === null) {
                 return '–';
+            }
+            if (this.isMeanDecision) {
+                return `${this.formatCurrency(comparison.ciLower)} – ${this.formatCurrency(comparison.ciUpper)}`;
             }
 
             return `${(comparison.ciLower * 100).toFixed(2)} – ${(comparison.ciUpper * 100).toFixed(2)} %`;

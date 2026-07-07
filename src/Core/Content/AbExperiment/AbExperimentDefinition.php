@@ -60,6 +60,10 @@ final class AbExperimentDefinition extends EntityDefinition
             (new StringField('test_type', 'testType', 32))->addFlags(new ApiAware(), new Required()),
             (new StringField('primary_metric', 'primaryMetric', 64))->addFlags(new ApiAware()),
             (new JsonField('secondary_metrics', 'secondaryMetrics'))->addFlags(new ApiAware()),
+            // Entscheidungs-Kennzahl, die das Verdikt treibt (s. AbDecisionMetric).
+            // DB-seitig NOT NULL mit Default; DAL-seitig nullable, da ohne Wert der
+            // Evaluator auf die Conversion-Rate zurückfällt.
+            (new StringField('decision_metric', 'decisionMetric', 32))->addFlags(new ApiAware()),
             (new IntField('traffic_allocation_pct', 'trafficAllocationPct'))->addFlags(new ApiAware(), new Required()),
             (new IntField('min_sample_size', 'minSampleSize'))->addFlags(new ApiAware()),
             // DECIMAL(4,3) im Schema (Wertebereich 0.000..9.999), DAL-seitig als float —

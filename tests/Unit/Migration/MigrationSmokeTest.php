@@ -15,6 +15,7 @@ use Ruhrcoder\RcAbTesting\Migration\Migration1747569604AddAnonymizedAt;
 use Ruhrcoder\RcAbTesting\Migration\Migration1747569605AddCustomerUnique;
 use Ruhrcoder\RcAbTesting\Migration\Migration1747569606AddExperimentKeyUnique;
 use Ruhrcoder\RcAbTesting\Migration\Migration1747569607AddScheduling;
+use Ruhrcoder\RcAbTesting\Migration\Migration1747569608AddDecisionMetric;
 use Shopware\Core\Framework\Migration\MigrationStep;
 
 /**
@@ -197,5 +198,38 @@ final class MigrationSmokeTest extends TestCase
         $connection->expects(self::never())->method('executeStatement');
 
         (new Migration1747569607AddScheduling())->update($connection);
+    }
+
+    public function testAddDecisionMetricTimestampIsPinned(): void
+    {
+        self::assertSame(1747569608, (new Migration1747569608AddDecisionMetric())->getCreationTimestamp());
+    }
+
+    public function testAddDecisionMetricAddsColumnWhenMissing(): void
+    {
+        $statements = [];
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willReturn(false); // Spalte fehlt noch
+        $connection->method('executeStatement')->willReturnCallback(
+            function (string $sql) use (&$statements): int {
+                $statements[] = $sql;
+
+                return 0;
+            },
+        );
+
+        (new Migration1747569608AddDecisionMetric())->update($connection);
+
+        self::assertCount(1, $statements);
+        self::assertStringContainsString('ADD COLUMN `decision_metric`', $statements[0]);
+    }
+
+    public function testAddDecisionMetricSkipsWhenColumnExists(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willReturn('decision_metric'); // Spalte vorhanden
+        $connection->expects(self::never())->method('executeStatement');
+
+        (new Migration1747569608AddDecisionMetric())->update($connection);
     }
 }

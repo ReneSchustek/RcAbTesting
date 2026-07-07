@@ -1,5 +1,14 @@
 # Changelog (DE)
 
+## [1.5.0] - 2026-07-07
+
+> **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migration) + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert).
+
+### Auswertung
+
+- **Ergebnis-Uebersicht mit Entscheidungs-Kennzahl:** Die Auswertung ist jetzt eine zusammenhaengende Uebersicht — ein Klartext-**Verdikt** oben, darunter die **Scorecard** aller Kennzahlen je Variante und **Tabs** fuer die Detail-Ansichten (Zeitverlauf, Segmente, Funnel folgen). Eine je Experiment waehlbare **Entscheidungs-Kennzahl** treibt das Verdikt; Standard ist **Umsatz pro Besucher**, alternativ die Conversion-Rate. Die uebrigen Kennzahlen werden als Kontext gezeigt, entscheiden aber nicht mit — das schuetzt vor Zufallstreffern, wenn man viele Kennzahlen gleichzeitig auf Signifikanz prueft.
+- **Signifikanz je Kennzahl:** Fuer „Umsatz pro Besucher" wird ein Mittelwert-Vergleich (mit Streuung) statt des Proportionen-Tests der Conversion-Rate gefahren. Das Verdikt bezieht sich damit ehrlich auf die gewaehlte Kennzahl — inklusive Konfidenzintervall in Euro und benoetigter Fallzahl. Der durchschnittliche Bestellwert bleibt bewusst reine Anzeige-Kennzahl (keine Entscheidungsgrundlage, da seine Analyseeinheit die Bestellung ist, nicht der Besucher).
+
 ## [1.4.0] - 2026-07-06
 
 ### Auswertung

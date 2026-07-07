@@ -105,6 +105,46 @@ final class ExperimentEvaluatorTest extends TestCase
         self::assertNull($result['sampleRatioMismatch']);
     }
 
+    public function testRevenuePerVisitorDecidesWinner(): void
+    {
+        $control = $this->variant('control', 50, true);
+        $treatment = $this->variant('treatment', 50, false);
+        $experiment = $this->experiment(0.95, [$control, $treatment]);
+        $experiment->setDecisionMetric('revenue_per_visitor');
+
+        // Gleich viele Conversions (100/100) — unter der Conversion-Rate gäbe es
+        // KEINEN Gewinner. Die Variante macht aber pro Besucher mehr Umsatz.
+        $result = $this->evaluator->evaluate($experiment, [
+            $control->getId() => ['assignments' => 1000, 'conversions' => 100, 'revenue' => 2000.0, 'revenueSumSq' => 40000.0],
+            $treatment->getId() => ['assignments' => 1000, 'conversions' => 100, 'revenue' => 2600.0, 'revenueSumSq' => 52000.0],
+        ]);
+
+        self::assertSame('revenue_per_visitor', $result['decisionMetric']);
+        self::assertSame('treatment', $result['winnerKey']);
+        self::assertTrue($result['comparisons'][0]['significant']);
+        self::assertEqualsWithDelta(0.3, $result['comparisons'][0]['lift'], 1e-9);
+        self::assertGreaterThan(0, $result['comparisons'][0]['requiredSamplePerVariant']);
+    }
+
+    public function testRevenueDecisionIgnoresConversionOnlyLift(): void
+    {
+        $control = $this->variant('control', 50, true);
+        $treatment = $this->variant('treatment', 50, false);
+        $experiment = $this->experiment(0.95, [$control, $treatment]);
+        $experiment->setDecisionMetric('revenue_per_visitor');
+
+        // Variante konvertiert HÄUFIGER (150 vs. 100), macht pro Besucher aber
+        // WENIGER Umsatz (kleinere Warenkörbe) — unter der Umsatz-Entscheidung
+        // kein Gewinner, negativer Umsatz-Lift.
+        $result = $this->evaluator->evaluate($experiment, [
+            $control->getId() => ['assignments' => 1000, 'conversions' => 100, 'revenue' => 2600.0, 'revenueSumSq' => 52000.0],
+            $treatment->getId() => ['assignments' => 1000, 'conversions' => 150, 'revenue' => 2000.0, 'revenueSumSq' => 30000.0],
+        ]);
+
+        self::assertNull($result['winnerKey']);
+        self::assertLessThan(0.0, $result['comparisons'][0]['lift']);
+    }
+
     /**
      * @param list<AbVariantEntity> $variants
      */

@@ -35,6 +35,8 @@ final class AbExperimentEntity extends Entity
     /** @var list<string>|null */
     protected ?array $secondaryMetrics = null;
 
+    protected ?string $decisionMetric = null;
+
     protected int $trafficAllocationPct;
 
     protected ?int $minSampleSize = null;
@@ -139,6 +141,16 @@ final class AbExperimentEntity extends Entity
     public function setSecondaryMetrics(?array $secondaryMetrics): void
     {
         $this->secondaryMetrics = $secondaryMetrics;
+    }
+
+    public function getDecisionMetric(): ?string
+    {
+        return $this->decisionMetric;
+    }
+
+    public function setDecisionMetric(?string $decisionMetric): void
+    {
+        $this->decisionMetric = $decisionMetric;
     }
 
     public function getTrafficAllocationPct(): int

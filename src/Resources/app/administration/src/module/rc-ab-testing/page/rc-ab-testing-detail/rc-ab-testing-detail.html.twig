@@ -126,43 +126,93 @@
 
             {% block rc_ab_testing_detail_card_stats %}
             <sw-card :title="$tc('rc-ab-testing.detail.statsTitle')">
-                {% block rc_ab_testing_detail_card_stats_winner %}
-                <sw-single-select
-                    v-model:value="winnerVariantId"
-                    :options="variantOptions"
-                    :placeholder="$tc('rc-ab-testing.detail.winnerNone')"
-                    :label="$tc('rc-ab-testing.detail.winner')">
-                </sw-single-select>
+                {% block rc_ab_testing_detail_card_stats_controls %}
+                <div class="rc-ab-testing-detail__decision">
+                    <span class="rc-ab-testing-detail__decision-label">{{ $tc('rc-ab-testing.detail.decisionMetric') }}</span>
+                    <sw-single-select
+                        v-model:value="experiment.decisionMetric"
+                        :options="decisionMetricOptions"
+                        :help-text="$tc('rc-ab-testing.detail.decisionMetricHelp')">
+                    </sw-single-select>
+                    <sw-button @click="loadStats">{{ $tc('rc-ab-testing.detail.refreshStats') }}</sw-button>
+                </div>
                 {% endblock %}
-                <sw-button @click="loadStats">{{ $tc('rc-ab-testing.detail.refreshStats') }}</sw-button>
-                <sw-data-grid
-                    v-if="stats"
-                    class="rc-ab-testing-detail__stats"
-                    :data-source="stats"
-                    :columns="[
-                        { property: 'technicalKey', label: $tc('rc-ab-testing.detail.variantKey') },
-                        { property: 'assignments', label: $tc('rc-ab-testing.detail.assignments') },
-                        { property: 'conversions', label: $tc('rc-ab-testing.detail.conversions') },
-                        { property: 'rate', label: $tc('rc-ab-testing.detail.rate') },
-                        { property: 'revenue', label: $tc('rc-ab-testing.detail.revenue') },
-                        { property: 'aov', label: $tc('rc-ab-testing.detail.aov') },
-                        { property: 'revenuePerVisitor', label: $tc('rc-ab-testing.detail.revenuePerVisitor') },
-                    ]"
-                    :show-selection="false"
-                    :show-actions="false">
-                    <template #column-rate="{ item }">
-                        {{ formatRate(item.rate) }}
-                    </template>
-                    <template #column-revenue="{ item }">
-                        {{ formatCurrency(item.revenue) }}
-                    </template>
-                    <template #column-aov="{ item }">
-                        {{ formatCurrency(item.aov) }}
-                    </template>
-                    <template #column-revenuePerVisitor="{ item }">
-                        {{ formatCurrency(item.revenuePerVisitor) }}
-                    </template>
-                </sw-data-grid>
+
+                {% block rc_ab_testing_detail_card_stats_verdict %}
+                <sw-alert v-if="verdict" class="rc-ab-testing-detail__verdict" :variant="verdict.variant">
+                    {{ verdict.text }}
+                </sw-alert>
+                {% endblock %}
+
+                {% block rc_ab_testing_detail_card_stats_tabs %}
+                <div class="rc-ab-testing-detail__tabs">
+                    <button
+                        v-for="tab in statsTabs"
+                        :key="tab.key"
+                        type="button"
+                        class="rc-ab-testing-detail__tab"
+                        :class="{ 'is--active': activeStatsTab === tab.key, 'is--disabled': !tab.available }"
+                        :disabled="!tab.available"
+                        @click="setActiveStatsTab(tab.key)">
+                        {{ tab.label }}
+                        <span v-if="!tab.available" class="rc-ab-testing-detail__tab-hint">{{ $tc('rc-ab-testing.detail.tabSoon') }}</span>
+                    </button>
+                </div>
+                {% endblock %}
+
+                {% block rc_ab_testing_detail_card_stats_overview %}
+                <template v-if="activeStatsTab === 'overview'">
+                    <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
+                        {{ $tc('rc-ab-testing.detail.statsEmpty') }}
+                    </div>
+                    <template v-else>
+                        {% block rc_ab_testing_detail_card_stats_winner %}
+                        <sw-single-select
+                            v-model:value="winnerVariantId"
+                            :options="variantOptions"
+                            :placeholder="$tc('rc-ab-testing.detail.winnerNone')"
+                            :label="$tc('rc-ab-testing.detail.winner')">
+                        </sw-single-select>
+                        {% endblock %}
+
+                        {% block rc_ab_testing_detail_card_stats_metric_cards %}
+                        <div v-if="metricCards.length" class="rc-ab-testing-detail__metric-cards">
+                            <div
+                                v-for="card in metricCards"
+                                :key="card.key"
+                                class="rc-ab-testing-detail__metric-card"
+                                :class="{ 'is--primary': card.isPrimary }">
+                                <div class="rc-ab-testing-detail__metric-label">
+                                    <span v-if="card.isPrimary" class="rc-ab-testing-detail__metric-tag">{{ $tc('rc-ab-testing.detail.decisionTag') }}</span>
+                                    {{ card.label }}
+                                </div>
+                                <div class="rc-ab-testing-detail__metric-value">{{ card.value }}</div>
+                                <div v-if="card.uplift" class="rc-ab-testing-detail__metric-uplift" :class="card.upliftClass">
+                                    {{ card.uplift }} {{ $tc('rc-ab-testing.detail.vsControl') }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endblock %}
+
+                        <sw-data-grid
+                            class="rc-ab-testing-detail__stats"
+                            :data-source="stats"
+                            :columns="scorecardColumns"
+                            :show-selection="false"
+                            :show-actions="false">
+                            <template #column-rate="{ item }">
+                                {{ formatRate(item.rate) }}
+                            </template>
+                            <template #column-revenue="{ item }">
+                                {{ formatCurrency(item.revenue) }}
+                            </template>
+                            <template #column-aov="{ item }">
+                                {{ formatCurrency(item.aov) }}
+                            </template>
+                            <template #column-revenuePerVisitor="{ item }">
+                                {{ formatCurrency(item.revenuePerVisitor) }}
+                            </template>
+                        </sw-data-grid>
 
                 {% block rc_ab_testing_detail_card_stats_evaluation %}
                 <div v-if="evaluation" class="rc-ab-testing-detail__evaluation">
@@ -210,6 +260,15 @@
                         </sw-alert>
                     </div>
                     {% endblock %}
+                </div>
+                {% endblock %}
+                    </template>
+                </template>
+                {% endblock %}
+
+                {% block rc_ab_testing_detail_card_stats_soon %}
+                <div v-if="activeStatsTab !== 'overview'" class="rc-ab-testing-detail__placeholder">
+                    {{ $tc('rc-ab-testing.detail.tabInPreparation') }}
                 </div>
                 {% endblock %}
             </sw-card>

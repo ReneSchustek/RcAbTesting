@@ -56,7 +56,7 @@ final class RcAbExperimentApiController
         $stats = $this->statsAggregator->aggregate($experiment, $context);
         $variants = [];
         foreach ($this->variants($experiment) as $variant) {
-            $variantStats = $stats[$variant->getId()] ?? ['assignments' => 0, 'conversions' => 0, 'orders' => 0, 'revenue' => 0.0];
+            $variantStats = $stats[$variant->getId()] ?? ['assignments' => 0, 'conversions' => 0, 'orders' => 0, 'revenue' => 0.0, 'revenueSumSq' => 0.0];
             $variants[] = [
                 'id' => $variant->getId(),
                 'technicalKey' => $variant->getTechnicalKey(),

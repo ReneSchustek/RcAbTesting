@@ -24,15 +24,15 @@ final class ExperimentStatsAggregatorTest extends TestCase
     {
         $aggregator = new ExperimentStatsAggregator(
             $this->assignmentRepository(100),
-            $this->connection(3),
+            $this->connection(3, 3.0, 9.0),
         );
 
         $stats = $aggregator->aggregate($this->experiment(), Context::createDefaultContext());
 
         // Der Stub liefert denselben Wert fuer alle fetchOne-Abfragen (Conversions,
-        // Bestellungen, Umsatz) — hier geht es nur um die Assignment-/Conversion-Basis.
+        // Bestellungen) — hier geht es um die Assignment-/Conversion-Basis plus Umsatz.
         self::assertSame(
-            ['assignments' => 100, 'conversions' => 3, 'orders' => 3, 'revenue' => 3.0],
+            ['assignments' => 100, 'conversions' => 3, 'orders' => 3, 'revenue' => 3.0, 'revenueSumSq' => 9.0],
             $stats[self::VARIANT_ID],
         );
     }
@@ -40,26 +40,25 @@ final class ExperimentStatsAggregatorTest extends TestCase
     public function testAggregatesOrdersAndRevenuePerVariant(): void
     {
         $connection = $this->createMock(Connection::class);
-        $connection->method('fetchOne')->willReturnCallback(static function (string $sql): int|string {
+        $connection->method('fetchOne')->willReturnCallback(static function (string $sql): int {
             if (str_contains($sql, 'COUNT(DISTINCT')) {
                 return 5; // konvertierende Besucher
             }
             if (str_contains($sql, 'COUNT(*)')) {
                 return 8; // Bestellungen (Events)
             }
-            if (str_contains($sql, 'SUM(event_value)')) {
-                return '1234.5000'; // Umsatz
-            }
 
             return 0;
         });
+        // Umsatz je Besucher: Summe und Quadratsumme in einem Lauf.
+        $connection->method('fetchAssociative')->willReturn(['sum' => '1234.5000', 'sum_squares' => '98765.4300']);
 
         $aggregator = new ExperimentStatsAggregator($this->assignmentRepository(100), $connection);
 
         $stats = $aggregator->aggregate($this->experiment(), Context::createDefaultContext());
 
         self::assertSame(
-            ['assignments' => 100, 'conversions' => 5, 'orders' => 8, 'revenue' => 1234.5],
+            ['assignments' => 100, 'conversions' => 5, 'orders' => 8, 'revenue' => 1234.5, 'revenueSumSq' => 98765.43],
             $stats[self::VARIANT_ID],
         );
     }
@@ -69,13 +68,30 @@ final class ExperimentStatsAggregatorTest extends TestCase
         // Mehr konvertierende Besucher als Zuordnungen ist unmöglich — wird geklemmt.
         $aggregator = new ExperimentStatsAggregator(
             $this->assignmentRepository(2),
-            $this->connection(4),
+            $this->connection(4, 4.0, 16.0),
         );
 
         $stats = $aggregator->aggregate($this->experiment(), Context::createDefaultContext());
 
         self::assertSame(
-            ['assignments' => 2, 'conversions' => 2, 'orders' => 4, 'revenue' => 4.0],
+            ['assignments' => 2, 'conversions' => 2, 'orders' => 4, 'revenue' => 4.0, 'revenueSumSq' => 16.0],
+            $stats[self::VARIANT_ID],
+        );
+    }
+
+    public function testRevenueIsZeroWhenNoConvertingVisitors(): void
+    {
+        // Ohne konvertierende Besucher liefert die Umsatz-Subquery keine Zeile.
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willReturn(0);
+        $connection->method('fetchAssociative')->willReturn(false);
+
+        $aggregator = new ExperimentStatsAggregator($this->assignmentRepository(50), $connection);
+
+        $stats = $aggregator->aggregate($this->experiment(), Context::createDefaultContext());
+
+        self::assertSame(
+            ['assignments' => 50, 'conversions' => 0, 'orders' => 0, 'revenue' => 0.0, 'revenueSumSq' => 0.0],
             $stats[self::VARIANT_ID],
         );
     }
@@ -91,10 +107,16 @@ final class ExperimentStatsAggregatorTest extends TestCase
         return $repository;
     }
 
-    private function connection(int $distinctVisitors): Connection
+    private function connection(int $distinctVisitors, float $revenueSum, float $revenueSumSquares): Connection
     {
         $connection = $this->createMock(Connection::class);
+        // fetchOne bedient Conversions (COUNT DISTINCT) und Bestellungen (COUNT(*))
+        // mit demselben Wert; die Tests, die beide unterscheiden, mocken separat.
         $connection->method('fetchOne')->willReturn($distinctVisitors);
+        $connection->method('fetchAssociative')->willReturn([
+            'sum' => (string) $revenueSum,
+            'sum_squares' => (string) $revenueSumSquares,
+        ]);
 
         return $connection;
     }
