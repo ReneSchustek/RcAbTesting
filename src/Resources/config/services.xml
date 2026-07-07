@@ -202,6 +202,10 @@
             <tag name="rc_ab_testing.frontend_switch"/>
         </service>
 
+        <service id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FreeShippingIndicatorSwitch">
+            <tag name="rc_ab_testing.frontend_switch"/>
+        </service>
+
         <service id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchRegistry">
             <argument type="tagged_iterator" tag="rc_ab_testing.frontend_switch"/>
         </service>

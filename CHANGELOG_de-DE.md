@@ -1,5 +1,32 @@
 # Changelog (DE)
 
+## [1.12.0] - 2026-07-07
+
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (neuer Schalter-Snippet). Keine Migration.
+
+### Neu
+
+- **Frontend-Schalter „Versandkostenfrei-Hinweis":** Zweiter registrierter Schalter (`free_shipping_indicator`, Werte Anzeigen/Ausblenden) — damit laesst sich der Versandkostenfrei-Hinweis von RcCheckout je A/B-Variante an- oder ausschalten und seine Wirkung messen. RcCheckout konsumiert den Wert ueber `FrontendSwitchResolver` (siehe RcCheckout RCHK02).
+
+## [1.11.0] - 2026-07-07
+
+> **Deployment:** `bin/console cache:clear` erforderlich (neue Services/Subscriber). Kein Admin-Build, keine Migration.
+
+### Neu
+
+- **Frontend-Schalter: Anwendungs-Ebene (flexibel).** Der beim Test gesetzte Schalter-Wert wird jetzt zur Laufzeit bereitgestellt — auf zwei Wegen, damit sowohl eigene als auch Fremd-Plugins bedient werden:
+  - **Eigene Plugins/Templates** lesen den aktiven Wert direkt über die neue Twig-Funktion `ab_switch('checkout_layout')` (bzw. den `FrontendSwitchResolver` in PHP) und passen ihr Frontend-Verhalten an.
+  - **Fremd-Plugins** (nicht änderbar) über einen konkreten **Adapter** (`FrontendSwitchAdapter`, getaggter Service): ein Dispatcher löst den aktiven Wert zur Render-Zeit auf und ruft den passenden Adapter — ohne das Zielplugin anzufassen. Adapter mit anderem Timing abonnieren selbst ein Event und nutzen den Resolver.
+  Damit ist der Schalter-Mechanismus vollstaendig und erweiterbar; die konkrete Umschaltung wird je Fall im Ziel-/eigenen Plugin ergaenzt.
+
+## [1.10.0] - 2026-07-07
+
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.
+
+### Neu
+
+- **Frontend-Schalter (No-Code, Grundlage):** Neuer Test-Typ „Plugin-Verhalten schalten" — pro Variante wird ein registrierter, frontend-wirksamer Schalter auf einen Wert gesetzt (Dropdown statt JSON). Erster Schalter: **Checkout-Darstellung** mit „Eine Seite" vs. „Schrittweise gefuehrt". Ein konsumierendes Plugin liest den Wert ueber `ab_variant_config('checkout_layout')` und passt nur sein Frontend-Verhalten an; wo Kunden abbrechen, zeigt die Funnel-Auswertung. Die Schalter-Registry ist ueber getaggte Services erweiterbar (weitere Faelle folgen je Bedarf). *Die eigentliche Checkout-Umschaltung liegt im jeweiligen Checkout-Plugin (Folge-Arbeit dort).*
+
 ## [1.9.0] - 2026-07-07
 
 > **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.

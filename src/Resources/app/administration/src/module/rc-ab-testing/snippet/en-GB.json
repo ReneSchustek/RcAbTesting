@@ -173,6 +173,11 @@
                 "label": "Checkout layout",
                 "onePage": "One page",
                 "guided": "Step-by-step (guided)"
+            },
+            "freeShippingIndicator": {
+                "label": "Free-shipping hint",
+                "on": "Show",
+                "off": "Hide"
             }
         }
     }
