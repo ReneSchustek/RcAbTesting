@@ -1,8 +1,11 @@
 {
   "main.js": {
-    "file": "assets/rc-ab-testing-B-4UY6On.js",
+    "file": "assets/rc-ab-testing-DqDsoh-X.js",
     "name": "rc-ab-testing",
     "src": "main.js",
-    "isEntry": true
+    "isEntry": true,
+    "css": [
+      "assets/rc-ab-testing-BIWfZw7v.css"
+    ]
   }
 }

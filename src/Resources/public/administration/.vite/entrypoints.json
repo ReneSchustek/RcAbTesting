@@ -2,10 +2,12 @@
   "base": "/bundles/rcabtesting/administration/",
   "entryPoints": {
     "rc-ab-testing": {
-      "css": [],
+      "css": [
+        "/bundles/rcabtesting/administration/assets/rc-ab-testing-BIWfZw7v.css"
+      ],
       "dynamic": [],
       "js": [
-        "/bundles/rcabtesting/administration/assets/rc-ab-testing-B-4UY6On.js"
+        "/bundles/rcabtesting/administration/assets/rc-ab-testing-DqDsoh-X.js"
       ],
       "legacy": false,
       "preload": []
