@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruhrcoder\RcAbTesting\Twig\Extension;
 
+use Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchResolver;
 use Ruhrcoder\RcAbTesting\Service\RequestVariantResolver;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
@@ -19,6 +20,7 @@ final class RcAbTwigExtension extends AbstractExtension
 {
     public function __construct(
         private readonly RequestVariantResolver $variantResolver,
+        private readonly FrontendSwitchResolver $switchResolver,
     ) {
     }
 
@@ -30,7 +32,18 @@ final class RcAbTwigExtension extends AbstractExtension
         return [
             new TwigFunction('ab_variant', $this->getVariant(...)),
             new TwigFunction('ab_variant_config', $this->getVariantConfig(...)),
+            new TwigFunction('ab_switch', $this->getSwitch(...)),
         ];
+    }
+
+    /**
+     * Aktiver Wert eines Frontend-Schalters fuer den aktuellen Besucher (z. B.
+     * `ab_switch('checkout_layout')` -> „guided") oder null. So liest ein eigenes
+     * Plugin/Template die A/B-Entscheidung ohne Kenntnis des Experiments.
+     */
+    public function getSwitch(string $switchKey): ?string
+    {
+        return $this->switchResolver->resolve($switchKey);
     }
 
     /**

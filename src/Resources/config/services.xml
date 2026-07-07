@@ -135,8 +135,23 @@
             <tag name="kernel.reset" method="reset"/>
         </service>
 
+        <service id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchResolver">
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentRegistry"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\RequestVariantResolver"/>
+            <argument type="service" id="request_stack"/>
+            <tag name="kernel.reset" method="reset"/>
+        </service>
+
+        <!-- Wendet Fremd-Plugin-Adapter zur Render-Zeit an (getaggte Adapter). -->
+        <service id="Ruhrcoder\RcAbTesting\Subscriber\FrontendSwitchDispatcher">
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchResolver"/>
+            <argument type="tagged_iterator" tag="rc_ab_testing.frontend_switch_adapter"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
         <service id="Ruhrcoder\RcAbTesting\Twig\Extension\RcAbTwigExtension">
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\RequestVariantResolver"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchResolver"/>
             <tag name="twig.extension"/>
         </service>
 
