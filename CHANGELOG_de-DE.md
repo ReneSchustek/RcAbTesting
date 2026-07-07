@@ -1,5 +1,13 @@
 # Changelog (DE)
 
+## [1.8.0] - 2026-07-07
+
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.
+
+### Auswertung
+
+- **Funnel je Stufe:** Neuer Tab „Funnel" — der Kauftrichter je Variante ueber vier Stufen (Seite angesehen → In den Warenkorb → Checkout gestartet → Kauf abgeschlossen). Je Stufe der Anteil der Besucher (Bezugsgroesse: alle Zuordnungen der Variante) als Balken plus der Drop-off (in Prozentpunkten) gegenueber der vorherigen Stufe. So wird sichtbar, WO eine Variante Besucher verliert und auf welcher Stufe ein Vorsprung entsteht. Damit ist die Auswertung (Uebersicht, Segmente, Zeitverlauf, Funnel) vollstaendig.
+
 ## [1.7.0] - 2026-07-07
 
 > **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.

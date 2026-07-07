@@ -3,11 +3,11 @@
   "entryPoints": {
     "rc-ab-testing": {
       "css": [
-        "/bundles/rcabtesting/administration/assets/rc-ab-testing-_upu157C.css"
+        "/bundles/rcabtesting/administration/assets/rc-ab-testing-dNQEu3vK.css"
       ],
       "dynamic": [],
       "js": [
-        "/bundles/rcabtesting/administration/assets/rc-ab-testing-D1cJU1mB.js"
+        "/bundles/rcabtesting/administration/assets/rc-ab-testing-DsuhfhXU.js"
       ],
       "legacy": false,
       "preload": []

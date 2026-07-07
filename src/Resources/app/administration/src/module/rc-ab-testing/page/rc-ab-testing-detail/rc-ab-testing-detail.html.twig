@@ -23,53 +23,77 @@
         <sw-card-view v-if="experiment">
             {% block rc_ab_testing_detail_card_base %}
             <sw-card :title="$tc('rc-ab-testing.detail.baseTitle')" :is-loading="isLoading">
+                {% block rc_ab_testing_detail_card_base_essentials %}
                 <sw-text-field v-model:value="experiment.name" :label="$tc('rc-ab-testing.detail.name')"></sw-text-field>
-                <sw-text-field v-model:value="experiment.technicalKey" :label="$tc('rc-ab-testing.detail.technicalKey')"></sw-text-field>
-                <sw-textarea-field v-model:value="experiment.hypothesis" :label="$tc('rc-ab-testing.detail.hypothesis')"></sw-textarea-field>
                 <sw-single-select
                     v-model:value="experiment.testType"
                     :options="testTypeOptions"
                     :label="$tc('rc-ab-testing.detail.testType')">
                 </sw-single-select>
+                <p v-if="testTypeHint" class="rc-ab-testing-detail__field-hint">{{ testTypeHint }}</p>
+                <sw-textarea-field
+                    v-model:value="experiment.hypothesis"
+                    :label="$tc('rc-ab-testing.detail.hypothesis')"
+                    :placeholder="$tc('rc-ab-testing.detail.hypothesisPlaceholder')">
+                </sw-textarea-field>
                 <sw-number-field
                     v-model:value="experiment.trafficAllocationPct"
                     :label="$tc('rc-ab-testing.detail.traffic')"
+                    :help-text="$tc('rc-ab-testing.detail.trafficHelp')"
                     :min="0"
                     :max="100">
                 </sw-number-field>
-                <sw-number-field
-                    v-model:value="experiment.targetSignificance"
-                    :label="$tc('rc-ab-testing.detail.targetSignificance')"
-                    :digits="3"
-                    :step="0.01">
-                </sw-number-field>
-                {% block rc_ab_testing_detail_card_base_targeting %}
-                <sw-entity-single-select
-                    v-model:value="experiment.salesChannelId"
-                    entity="sales_channel"
-                    show-clearable-button
-                    :label="$tc('rc-ab-testing.detail.salesChannel')"
-                    :help-text="$tc('rc-ab-testing.detail.salesChannelHelp')">
-                </sw-entity-single-select>
-                <sw-entity-single-select
-                    v-model:value="experiment.ruleId"
-                    entity="rule"
-                    show-clearable-button
-                    :label="$tc('rc-ab-testing.detail.rule')"
-                    :help-text="$tc('rc-ab-testing.detail.ruleHelp')">
-                </sw-entity-single-select>
                 {% endblock %}
-                {% block rc_ab_testing_detail_card_base_scheduling %}
-                <sw-datepicker
-                    v-model:value="experiment.scheduledStartAt"
-                    date-type="datetime"
-                    :label="$tc('rc-ab-testing.detail.scheduledStart')">
-                </sw-datepicker>
-                <sw-datepicker
-                    v-model:value="experiment.scheduledEndAt"
-                    date-type="datetime"
-                    :label="$tc('rc-ab-testing.detail.scheduledEnd')">
-                </sw-datepicker>
+
+                {% block rc_ab_testing_detail_card_base_advanced_toggle %}
+                <sw-switch-field
+                    v-model:value="showAdvanced"
+                    :label="$tc('rc-ab-testing.detail.advancedToggle')">
+                </sw-switch-field>
+                {% endblock %}
+
+                {% block rc_ab_testing_detail_card_base_advanced %}
+                <template v-if="showAdvanced">
+                    <sw-text-field
+                        v-model:value="experiment.technicalKey"
+                        :label="$tc('rc-ab-testing.detail.technicalKey')"
+                        :help-text="$tc('rc-ab-testing.detail.technicalKeyHelp')">
+                    </sw-text-field>
+                    <sw-number-field
+                        v-model:value="experiment.targetSignificance"
+                        :label="$tc('rc-ab-testing.detail.targetSignificance')"
+                        :digits="3"
+                        :step="0.01">
+                    </sw-number-field>
+                    {% block rc_ab_testing_detail_card_base_targeting %}
+                    <sw-entity-single-select
+                        v-model:value="experiment.salesChannelId"
+                        entity="sales_channel"
+                        show-clearable-button
+                        :label="$tc('rc-ab-testing.detail.salesChannel')"
+                        :help-text="$tc('rc-ab-testing.detail.salesChannelHelp')">
+                    </sw-entity-single-select>
+                    <sw-entity-single-select
+                        v-model:value="experiment.ruleId"
+                        entity="rule"
+                        show-clearable-button
+                        :label="$tc('rc-ab-testing.detail.rule')"
+                        :help-text="$tc('rc-ab-testing.detail.ruleHelp')">
+                    </sw-entity-single-select>
+                    {% endblock %}
+                    {% block rc_ab_testing_detail_card_base_scheduling %}
+                    <sw-datepicker
+                        v-model:value="experiment.scheduledStartAt"
+                        date-type="datetime"
+                        :label="$tc('rc-ab-testing.detail.scheduledStart')">
+                    </sw-datepicker>
+                    <sw-datepicker
+                        v-model:value="experiment.scheduledEndAt"
+                        date-type="datetime"
+                        :label="$tc('rc-ab-testing.detail.scheduledEnd')">
+                    </sw-datepicker>
+                    {% endblock %}
+                </template>
                 {% endblock %}
             </sw-card>
             {% endblock %}

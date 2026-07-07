@@ -40,6 +40,10 @@ Component.register('rc-ab-testing-detail', {
             isSaving: false,
             // Aktiver Auswertungs-Tab (reiner Ansichtswechsel in der Karte).
             activeStatsTab: 'overview',
+            // Progressive Disclosure: technische Felder (Schluessel, Signifikanz,
+            // Targeting, Scheduling, Gewichte, Roh-JSON) erst auf Wunsch zeigen —
+            // die Standardansicht bleibt fuer Nicht-Techniker verstaendlich.
+            showAdvanced: false,
         };
     },
 
@@ -61,13 +65,28 @@ Component.register('rc-ab-testing-detail', {
             return this.repositoryFactory.create('rc_ab_variant');
         },
 
+        // No-Code-Variante (CMS-Seite) zuerst und empfohlen; die uebrigen Typen
+        // sind fuer Entwickler und im Alltag selten.
         testTypeOptions() {
             return [
+                { value: 'cms_page', label: this.$tc('rc-ab-testing.detail.testTypeCms') },
                 { value: 'twig', label: this.$tc('rc-ab-testing.detail.testTypeTwig') },
                 { value: 'theme', label: this.$tc('rc-ab-testing.detail.testTypeTheme') },
                 { value: 'feature_flag', label: this.$tc('rc-ab-testing.detail.testTypeFeatureFlag') },
-                { value: 'cms_page', label: this.$tc('rc-ab-testing.detail.testTypeCms') },
             ];
+        },
+
+        // Erklaert den gewaehlten Test-Typ in Klartext (unter dem Auswahlfeld).
+        testTypeHint() {
+            const hints = {
+                cms_page: 'rc-ab-testing.detail.testTypeCmsHint',
+                twig: 'rc-ab-testing.detail.testTypeDevHint',
+                theme: 'rc-ab-testing.detail.testTypeDevHint',
+                feature_flag: 'rc-ab-testing.detail.testTypeDevHint',
+            };
+            const key = this.experiment ? hints[this.experiment.testType] : null;
+
+            return key ? this.$tc(key) : '';
         },
 
         // Beim CMS-Seiten-Test waehlt der Betreuer je Variante eine CMS-Seite per
@@ -436,13 +455,27 @@ Component.register('rc-ab-testing-detail', {
             ];
         },
 
+        // Standardansicht zeigt nur Name, Ausgestaltung (Seite/Config) und Control;
+        // technischer Schluessel und Gewicht erst im Experten-Modus (Gewichte
+        // werden ohnehin automatisch 50:50 verteilt).
         variantColumns() {
+            const configLabel = this.isCmsTest
+                ? this.$tc('rc-ab-testing.detail.variantPage')
+                : this.$tc('rc-ab-testing.detail.variantConfig');
+            const name = { property: 'name', label: this.$tc('rc-ab-testing.detail.variantName') };
+            const config = { property: 'config', label: configLabel };
+            const control = { property: 'isControl', label: this.$tc('rc-ab-testing.detail.variantControl') };
+
+            if (!this.showAdvanced) {
+                return [name, config, control];
+            }
+
             return [
                 { property: 'technicalKey', label: this.$tc('rc-ab-testing.detail.variantKey') },
-                { property: 'name', label: this.$tc('rc-ab-testing.detail.variantName') },
+                name,
                 { property: 'weight', label: this.$tc('rc-ab-testing.detail.variantWeight') },
-                { property: 'isControl', label: this.$tc('rc-ab-testing.detail.variantControl') },
-                { property: 'config', label: this.$tc('rc-ab-testing.detail.variantConfig') },
+                control,
+                config,
             ];
         },
 
@@ -567,6 +600,28 @@ Component.register('rc-ab-testing-detail', {
             });
         },
 
+        // Leitet fehlende technische Schluessel aus dem Namen bzw. der Position ab,
+        // damit die Standardansicht ohne das Schluessel-Feld auskommt.
+        ensureTechnicalKeys() {
+            if (!this.experiment.technicalKey || !this.experiment.technicalKey.trim()) {
+                this.experiment.technicalKey = this.slugify(this.experiment.name) || `experiment-${Date.now()}`;
+            }
+            this.experiment.variants.forEach((variant, index) => {
+                if (!variant.technicalKey || !variant.technicalKey.trim()) {
+                    variant.technicalKey = `variant-${index + 1}`;
+                }
+            });
+        },
+
+        slugify(text) {
+            return (text || '')
+                .toString()
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+        },
+
         setVariantConfigDraft(variantId, value) {
             this.variantConfigDrafts = { ...this.variantConfigDrafts, [variantId]: value };
         },
@@ -626,6 +681,10 @@ Component.register('rc-ab-testing-detail', {
         },
 
         async onSave() {
+            // Technischer Schluessel ist versteckt (Experten-Feld), aber Pflicht —
+            // aus dem Namen ableiten, wenn leer.
+            this.ensureTechnicalKeys();
+
             if (!this.applyVariantConfigDrafts()) {
                 this.createNotificationError({ message: this.$tc('rc-ab-testing.detail.variantConfigInvalid') });
                 return;
