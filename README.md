@@ -11,6 +11,8 @@ RcAbTesting teilt Besucher deterministisch und geräteübergreifend stabil auf V
 - **Twig-Variant** — Storefront-Markup-Switch (z. B. RcCheckout vs. RcCheckoutEnhancer)
 - **Theme** — Theme-Override pro Request
 - **Feature-Flag** — boolescher Config-Override über die Varianten-Config
+- **Zwei Seiten vergleichen (CMS-Seite)** — No-Code: pro Variante eine Erlebniswelt (CMS-Seite) per Dropdown; die zugewiesene Seite wird auf Navigation-/Landing-/Produktseiten automatisch ausgeliefert (Control = die aktuell live ausgelieferte Seite)
+- **Plugin-Verhalten schalten (Frontend-Schalter)** — No-Code: pro Variante wird ein registrierter, frontend-wirksamer Schalter auf einen Wert gesetzt (Dropdown statt JSON). Eigene Plugins/Templates lesen den aktiven Wert über die Twig-Funktion `ab_switch('key')` bzw. den `FrontendSwitchResolver`; Fremd-Plugins über einen getaggten `FrontendSwitchAdapter`. Beispiel-Schalter: Checkout-Darstellung, Versandkostenfrei-Hinweis
 
 ### Funnel-Events (Standard-Set)
 

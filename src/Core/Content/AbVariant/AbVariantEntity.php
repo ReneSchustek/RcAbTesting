@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAbTesting\Core\Content\AbVariant;
 
 use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentEntity;
+use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentTestType;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityIdTrait;
 
@@ -113,5 +114,18 @@ final class AbVariantEntity extends Entity
     public function setConfig(?array $config): void
     {
         $this->config = $config;
+    }
+
+    /**
+     * Ziel-CMS-Seite dieser Variante (aus `config.cmsPageId`) oder null, wenn
+     * keine gesetzt ist. Eine Quelle der Wahrheit für alle Leser — Start-Guard,
+     * Locator und Subscriber fragen die Variante, statt die Config selbst
+     * auseinanderzunehmen.
+     */
+    public function getCmsPageId(): ?string
+    {
+        $cmsPageId = $this->config[AbExperimentTestType::CMS_PAGE_CONFIG_KEY] ?? null;
+
+        return \is_string($cmsPageId) && $cmsPageId !== '' ? $cmsPageId : null;
     }
 }

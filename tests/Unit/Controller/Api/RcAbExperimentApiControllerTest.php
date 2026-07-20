@@ -20,6 +20,7 @@ use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsResponseAssembler;
 use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentTimeSeriesAggregator;
 use Ruhrcoder\RcAbTesting\Service\Stats\NormalDistribution;
 use Ruhrcoder\RcAbTesting\Service\Stats\SampleSizeCalculator;
@@ -57,6 +58,22 @@ final class RcAbExperimentApiControllerTest extends TestCase
         self::assertSame(0.95, $payload['evaluation']['confidenceLevel']);
         self::assertCount(1, $payload['evaluation']['comparisons']);
         self::assertSame('b', $payload['evaluation']['comparisons'][0]['variantKey']);
+    }
+
+    public function testFrontendSwitchesListsRegisteredSwitches(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::RUNNING), $captured);
+
+        $response = $controller->frontendSwitches();
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decode($response->getContent());
+        self::assertCount(1, $payload['switches']);
+        self::assertSame(CheckoutLayoutSwitch::KEY, $payload['switches'][0]['key']);
+        // Labels bleiben Snippet-Schlüssel — lokalisiert wird in der Admin-Oberfläche.
+        self::assertSame('rc-ab-testing.switch.checkoutLayout.label', $payload['switches'][0]['label']);
+        self::assertSame(CheckoutLayoutSwitch::ONE_PAGE, $payload['switches'][0]['options'][0]['value']);
     }
 
     public function testStatsNotFound(): void
@@ -218,37 +235,62 @@ final class RcAbExperimentApiControllerTest extends TestCase
 
         $normal = new NormalDistribution();
 
+        $assembler = new ExperimentStatsResponseAssembler(
+            new ExperimentStatsAggregator($this->statsConnection(assignments: 100, conversions: 5)),
+            new ExperimentSegmentAggregator($this->connection()),
+            new ExperimentTimeSeriesAggregator($this->connection()),
+            new ExperimentFunnelAggregator($this->connection()),
+            new ExperimentEvaluator(new StatisticsCalculator($normal), new SampleSizeCalculator($normal)),
+            $this->createMock(EntityRepository::class),
+        );
+
         return new RcAbExperimentApiController(
             new ExperimentLookup($experimentRepository),
             $experimentRepository,
-            new ExperimentStatsAggregator($this->assignmentRepository(), $this->connection(5)),
-            new ExperimentSegmentAggregator($this->connection(5)),
-            new ExperimentTimeSeriesAggregator($this->connection(5)),
-            new ExperimentFunnelAggregator($this->connection(5)),
-            new ExperimentEvaluator(new StatisticsCalculator($normal), new SampleSizeCalculator($normal)),
+            $assembler,
             new ExperimentIntegrityValidator(),
-            $this->createMock(EntityRepository::class),
             new FrontendSwitchRegistry([new CheckoutLayoutSwitch()]),
         );
     }
 
-    private function assignmentRepository(): EntityRepository
-    {
-        $result = $this->createStub(EntitySearchResult::class);
-        $result->method('getTotal')->willReturn(100);
-
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('search')->willReturn($result);
-
-        return $repository;
-    }
-
-    private function connection(int $distinctVisitors): Connection
+    /**
+     * Liefert dem Stats-Aggregator seine zwei gruppierten Abfragen: Zuordnungen je
+     * Variante und Conversion-Kennzahlen je Variante.
+     */
+    private function statsConnection(int $assignments, int $conversions): Connection
     {
         $connection = $this->createMock(Connection::class);
-        $connection->method('fetchOne')->willReturn($distinctVisitors);
+        $connection->method('fetchAllAssociative')->willReturnCallback(
+            static function (string $sql) use ($assignments, $conversions): array {
+                if (str_contains($sql, 'rc_ab_assignment')) {
+                    return [
+                        ['v' => self::VARIANT_A, 'c' => (string) $assignments],
+                        ['v' => self::VARIANT_B, 'c' => (string) $assignments],
+                    ];
+                }
+
+                $totals = static fn (string $variantId): array => [
+                    'v' => $variantId,
+                    'conversions' => (string) $conversions,
+                    'orders' => (string) $conversions,
+                    'revenue' => '0',
+                    'revenue_sum_sq' => '0',
+                ];
+
+                return [$totals(self::VARIANT_A), $totals(self::VARIANT_B)];
+            },
+        );
 
         return $connection;
+    }
+
+    /**
+     * Segment-, Zeitverlauf- und Funnel-Aggregator werden hier nicht geprüft — sie
+     * bekommen eine Verbindung ohne Zeilen.
+     */
+    private function connection(): Connection
+    {
+        return $this->createMock(Connection::class);
     }
 
     private function experiment(string $status): AbExperimentEntity

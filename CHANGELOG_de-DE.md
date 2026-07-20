@@ -1,12 +1,33 @@
 # Changelog (DE)
 
+## [1.13.0] - 2026-07-20
+
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS/Snippets geändert). Keine Migration.
+
+### Barrierefreiheit (BFSG)
+
+- **Auswertungs-Tabs** folgen dem ARIA-Tab-Muster (`tablist`/`tab`/`tabpanel`) und sind per Pfeiltasten, Pos1 und Ende bedienbar; der Fokus ist sichtbar.
+- **Hilfe-Erklärungen** in den Tabellenköpfen hängen an einem Button statt an einem reinen MouseOver-Icon — damit sind sie per Tastatur erreichbar und werden vorgelesen.
+- **Zeitverlauf** codiert die Varianten zusätzlich zur Farbe über **Strichmuster** und eine Wert-Beschriftung am Linienende; unter dem Diagramm liegt dieselbe Zahlenreihe als Tabelle für Screenreader. Das SVG trägt eine aussagekräftige Beschreibung.
+- **Funnel** liefert dieselben Stufenzahlen (Stufe je Variante mit Anteil und Drop-off) zusätzlich als versteckte Tabelle für Screenreader; die Balken tragen einen aussagekräftigen Namen.
+- **Kontraste** angehoben: Textfarben erreichen mindestens 4,5:1, Grafiken und Diagrammfarben mindestens 3:1.
+- **Nachgeladene Auswertung** wird in einer `aria-live`-Region angekündigt; die Kennzahl-Auswahl und die Inline-Felder der Varianten-Tabelle haben jetzt einen zugänglichen Namen.
+- Segment-Tabellen mit `caption` und `scope`; korrigierte Überschriften-Hierarchie.
+
+### Geändert
+
+- **Auswertungs-Detailseite entkoppelt:** Die vier Auswertungs-Tabs (Übersicht, Segmente, Zeitverlauf, Funnel) sind eigene Komponenten; die Ableitungen (Chart-Geometrie, Verdikt, Funnel, Formatierung, Kennzahl-Katalog) liegen als reine Funktionen unter `helper/` und sind mit 56 Tests abgedeckt. Verhalten unverändert.
+- **Weniger Datenbank-Abfragen in der Auswertung:** Der `ExperimentStatsAggregator` aggregiert alle Varianten in zwei gruppierten Abfragen statt in vier Abfragen je Variante.
+- Dedizierter Log-Channel `rc_ab_testing` für alle Plugin-Services.
+- Die Bridge-Implementierung ist nicht mehr öffentlich im Container; öffentlich ist — wie dokumentiert — nur das Interface `ActiveVariantQuery`.
+
 ## [1.12.0] - 2026-07-07
 
 > **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (neuer Schalter-Snippet). Keine Migration.
 
 ### Neu
 
-- **Frontend-Schalter „Versandkostenfrei-Hinweis":** Zweiter registrierter Schalter (`free_shipping_indicator`, Werte Anzeigen/Ausblenden) — damit laesst sich der Versandkostenfrei-Hinweis von RcCheckout je A/B-Variante an- oder ausschalten und seine Wirkung messen. RcCheckout konsumiert den Wert ueber `FrontendSwitchResolver` (siehe RcCheckout RCHK02).
+- **Frontend-Schalter „Versandkostenfrei-Hinweis":** Zweiter registrierter Schalter (`free_shipping_indicator`, Werte Anzeigen/Ausblenden) — damit lässt sich der Versandkostenfrei-Hinweis von RcCheckout je A/B-Variante an- oder ausschalten und seine Wirkung messen. RcCheckout konsumiert den Wert über `FrontendSwitchResolver` (siehe RcCheckout RCHK02).
 
 ## [1.11.0] - 2026-07-07
 
@@ -17,79 +38,80 @@
 - **Frontend-Schalter: Anwendungs-Ebene (flexibel).** Der beim Test gesetzte Schalter-Wert wird jetzt zur Laufzeit bereitgestellt — auf zwei Wegen, damit sowohl eigene als auch Fremd-Plugins bedient werden:
   - **Eigene Plugins/Templates** lesen den aktiven Wert direkt über die neue Twig-Funktion `ab_switch('checkout_layout')` (bzw. den `FrontendSwitchResolver` in PHP) und passen ihr Frontend-Verhalten an.
   - **Fremd-Plugins** (nicht änderbar) über einen konkreten **Adapter** (`FrontendSwitchAdapter`, getaggter Service): ein Dispatcher löst den aktiven Wert zur Render-Zeit auf und ruft den passenden Adapter — ohne das Zielplugin anzufassen. Adapter mit anderem Timing abonnieren selbst ein Event und nutzen den Resolver.
-  Damit ist der Schalter-Mechanismus vollstaendig und erweiterbar; die konkrete Umschaltung wird je Fall im Ziel-/eigenen Plugin ergaenzt.
+  Damit ist der Schalter-Mechanismus vollständig und erweiterbar; die konkrete Umschaltung wird je Fall im Ziel-/eigenen Plugin ergänzt.
 
 ## [1.10.0] - 2026-07-07
 
-> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geändert). Keine neue Migration.
 
 ### Neu
 
-- **Frontend-Schalter (No-Code, Grundlage):** Neuer Test-Typ „Plugin-Verhalten schalten" — pro Variante wird ein registrierter, frontend-wirksamer Schalter auf einen Wert gesetzt (Dropdown statt JSON). Erster Schalter: **Checkout-Darstellung** mit „Eine Seite" vs. „Schrittweise gefuehrt". Ein konsumierendes Plugin liest den Wert ueber `ab_variant_config('checkout_layout')` und passt nur sein Frontend-Verhalten an; wo Kunden abbrechen, zeigt die Funnel-Auswertung. Die Schalter-Registry ist ueber getaggte Services erweiterbar (weitere Faelle folgen je Bedarf). *Die eigentliche Checkout-Umschaltung liegt im jeweiligen Checkout-Plugin (Folge-Arbeit dort).*
+- **Frontend-Schalter (No-Code, Grundlage):** Neuer Test-Typ „Plugin-Verhalten schalten" — pro Variante wird ein registrierter, frontend-wirksamer Schalter auf einen Wert gesetzt (Dropdown statt JSON). Erster Schalter: **Checkout-Darstellung** mit „Eine Seite" vs. „Schrittweise geführt". Ein konsumierendes Plugin liest den Wert über `ab_variant_config('checkout_layout')` und passt nur sein Frontend-Verhalten an; wo Kunden abbrechen, zeigt die Funnel-Auswertung. Die Schalter-Registry ist über getaggte Services erweiterbar (weitere Fälle folgen je Bedarf). *Die eigentliche Checkout-Umschaltung liegt im jeweiligen Checkout-Plugin (Folge-Arbeit dort).*
 
 ## [1.9.0] - 2026-07-07
 
-> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geändert). Keine neue Migration.
 
 ### Admin
 
-- **Gefuehrte Anlage (verstaendliche Bedienung):** Die Detailseite ist fuer Nicht-Techniker aufgeraeumt. Die Standardansicht zeigt nur die verstaendlichen Felder — **„Was moechtest Du testen?"** mit Klartext-Test-Typen und Erklaerung (No-Code „Zwei Seiten vergleichen" zuerst), Hypothese mit Beispiel, Traffic-Anteil mit Hilfe und die Varianten. Technische Felder (technischer Schluessel, Ziel-Signifikanz, Targeting, Zeitplan, Gewichte, Roh-JSON) sind hinter **„Erweiterte Einstellungen anzeigen"** eingeklappt. Der technische Schluessel wird bei Bedarf automatisch aus dem Namen erzeugt, die Gewichte automatisch 50:50 verteilt.
+- **Geführte Anlage (verständliche Bedienung):** Die Detailseite ist für Nicht-Techniker aufgeräumt. Die Standardansicht zeigt nur die verständlichen Felder — **„Was möchtest Du testen?"** mit Klartext-Test-Typen und Erklärung (No-Code „Zwei Seiten vergleichen" zuerst), Hypothese mit Beispiel, Traffic-Anteil mit Hilfe und die Varianten. Technische Felder (technischer Schlüssel, Ziel-Signifikanz, Targeting, Zeitplan, Gewichte, Roh-JSON) sind hinter **„Erweiterte Einstellungen anzeigen"** eingeklappt. Der technische Schlüssel wird bei Bedarf automatisch aus dem Namen erzeugt, die Gewichte automatisch 50:50 verteilt.
 
 ## [1.8.0] - 2026-07-07
 
-> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geändert). Keine neue Migration.
 
 ### Auswertung
 
-- **Funnel je Stufe:** Neuer Tab „Funnel" — der Kauftrichter je Variante ueber vier Stufen (Seite angesehen → In den Warenkorb → Checkout gestartet → Kauf abgeschlossen). Je Stufe der Anteil der Besucher (Bezugsgroesse: alle Zuordnungen der Variante) als Balken plus der Drop-off (in Prozentpunkten) gegenueber der vorherigen Stufe. So wird sichtbar, WO eine Variante Besucher verliert und auf welcher Stufe ein Vorsprung entsteht. Damit ist die Auswertung (Uebersicht, Segmente, Zeitverlauf, Funnel) vollstaendig.
+- **Funnel je Stufe:** Neuer Tab „Funnel" — der Kauftrichter je Variante über vier Stufen (Seite angesehen → In den Warenkorb → Checkout gestartet → Kauf abgeschlossen). Je Stufe der Anteil der Besucher (Bezugsgröße: alle Zuordnungen der Variante) als Balken plus der Drop-off (in Prozentpunkten) gegenüber der vorherigen Stufe. So wird sichtbar, WO eine Variante Besucher verliert und auf welcher Stufe ein Vorsprung entsteht. Damit ist die Auswertung (Übersicht, Segmente, Zeitverlauf, Funnel) vollständig.
 
 ## [1.7.0] - 2026-07-07
 
-> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert). Keine neue Migration.
+> **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geändert). Keine neue Migration.
 
 ### Auswertung
 
-- **Zeitverlauf:** Neuer Tab „Zeitverlauf" — der **kumulative** Verlauf der Entscheidungs-Kennzahl (Umsatz pro Besucher bzw. Conversion-Rate) je Variante ueber die Zeit als Liniendiagramm. So laesst sich ein verfruehtes Zufallssignal (frueh, bei wenigen Besuchern, stark schwankend) von einem stabilen, belastbaren Trend unterscheiden. Achse in der Einheit der gewaehlten Kennzahl (Euro bzw. Prozent).
+- **Zeitverlauf:** Neuer Tab „Zeitverlauf" — der **kumulative** Verlauf der Entscheidungs-Kennzahl (Umsatz pro Besucher bzw. Conversion-Rate) je Variante über die Zeit als Liniendiagramm. So lässt sich ein verfrühtes Zufallssignal (früh, bei wenigen Besuchern, stark schwankend) von einem stabilen, belastbaren Trend unterscheiden. Achse in der Einheit der gewählten Kennzahl (Euro bzw. Prozent).
 
 ## [1.6.0] - 2026-07-07
 
-> **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migration) + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert).
+> **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migration) + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geändert).
 
 ### Auswertung
 
-- **Segment-Auswertung:** Neuer Tab „Segmente" — dieselbe Auswertung je **Geraet** (Desktop/Mobil/Tablet) und je **Verkaufskanal**. So wird sichtbar, dass eine Variante je Segment unterschiedlich wirken kann (z. B. auf Desktop signifikant besser, auf Mobil nicht). Je Segment eine kompakte Scorecard mit Ergebnis-Ampel. Die Geraeteklasse wird beim ersten Bucketing aus dem User-Agent abgeleitet und an der Zuordnung gespeichert — sie greift ab Installation dieser Version; aeltere Zuordnungen erscheinen im Segment „Unbekannt". Eine Dimension wird nur gezeigt, wenn sie mindestens zwei Auspraegungen hat.
-- **Verstaendliche Tabellen:** Die Spaltenueberschriften der Auswertung (Lift, p-Value, Konfidenzintervall, Signifikanz, benoetigte Fallzahl, Zuordnungen, Rate, Umsatz/Besucher) haben jetzt ein Hilfe-Symbol mit MouseOver-Erklaerung in Klartext — fuer Entscheider, die die Fachbegriffe nicht taeglich lesen.
+- **Segment-Auswertung:** Neuer Tab „Segmente" — dieselbe Auswertung je **Gerät** (Desktop/Mobil/Tablet) und je **Verkaufskanal**. So wird sichtbar, dass eine Variante je Segment unterschiedlich wirken kann (z. B. auf Desktop signifikant besser, auf Mobil nicht). Je Segment eine kompakte Scorecard mit Ergebnis-Ampel. Die Geräteklasse wird beim ersten Bucketing aus dem User-Agent abgeleitet und an der Zuordnung gespeichert — sie greift ab Installation dieser Version; ältere Zuordnungen erscheinen im Segment „Unbekannt". Eine Dimension wird nur gezeigt, wenn sie mindestens zwei Ausprägungen hat.
+- **Verständliche Tabellen:** Die Spaltenüberschriften der Auswertung (Lift, p-Value, Konfidenzintervall, Signifikanz, benötigte Fallzahl, Zuordnungen, Rate, Umsatz/Besucher) haben jetzt ein Hilfe-Symbol mit MouseOver-Erklärung in Klartext — für Entscheider, die die Fachbegriffe nicht täglich lesen.
 
 ## [1.5.0] - 2026-07-07
 
-> **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migration) + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geaendert).
+> **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migration) + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS geändert).
 
 ### Auswertung
 
-- **Ergebnis-Uebersicht mit Entscheidungs-Kennzahl:** Die Auswertung ist jetzt eine zusammenhaengende Uebersicht — ein Klartext-**Verdikt** oben, darunter die **Scorecard** aller Kennzahlen je Variante und **Tabs** fuer die Detail-Ansichten (Zeitverlauf, Segmente, Funnel folgen). Eine je Experiment waehlbare **Entscheidungs-Kennzahl** treibt das Verdikt; Standard ist **Umsatz pro Besucher**, alternativ die Conversion-Rate. Die uebrigen Kennzahlen werden als Kontext gezeigt, entscheiden aber nicht mit — das schuetzt vor Zufallstreffern, wenn man viele Kennzahlen gleichzeitig auf Signifikanz prueft.
-- **Signifikanz je Kennzahl:** Fuer „Umsatz pro Besucher" wird ein Mittelwert-Vergleich (mit Streuung) statt des Proportionen-Tests der Conversion-Rate gefahren. Das Verdikt bezieht sich damit ehrlich auf die gewaehlte Kennzahl — inklusive Konfidenzintervall in Euro und benoetigter Fallzahl. Der durchschnittliche Bestellwert bleibt bewusst reine Anzeige-Kennzahl (keine Entscheidungsgrundlage, da seine Analyseeinheit die Bestellung ist, nicht der Besucher).
+- **Ergebnis-Übersicht mit Entscheidungs-Kennzahl:** Die Auswertung ist jetzt eine zusammenhängende Übersicht — ein Klartext-**Verdikt** oben, darunter die **Scorecard** aller Kennzahlen je Variante und **Tabs** für die Detail-Ansichten (Zeitverlauf, Segmente, Funnel folgen). Eine je Experiment wählbare **Entscheidungs-Kennzahl** treibt das Verdikt; Standard ist **Umsatz pro Besucher**, alternativ die Conversion-Rate. Die übrigen Kennzahlen werden als Kontext gezeigt, entscheiden aber nicht mit — das schützt vor Zufallstreffern, wenn man viele Kennzahlen gleichzeitig auf Signifikanz prüft.
+- **Signifikanz je Kennzahl:** Für „Umsatz pro Besucher" wird ein Mittelwert-Vergleich (mit Streuung) statt des Proportionen-Tests der Conversion-Rate gefahren. Das Verdikt bezieht sich damit ehrlich auf die gewählte Kennzahl — inklusive Konfidenzintervall in Euro und benötigter Fallzahl. Der durchschnittliche Bestellwert bleibt bewusst reine Anzeige-Kennzahl (keine Entscheidungsgrundlage, da seine Analyseeinheit die Bestellung ist, nicht der Besucher).
 
 ## [1.4.0] - 2026-07-06
 
 ### Auswertung
 
-- **Umsatz je Variante:** Die Auswertung weist jetzt zusaetzlich zur Conversion-Rate den **Umsatz**, den **durchschnittlichen Bestellwert** (Ø Bestellwert) und den **Umsatz pro Besucher** je Variante aus. Der Umsatz kommt aus dem beim Kauf mitgetrackten Bestellwert. Damit sieht man, ob eine Variante nicht nur oefter, sondern auch **wertvoller** verkauft — die Kennzahl, auf die Entscheider im E-Commerce handeln (eine Variante kann oefter konvertieren, aber bei kleinerem Warenkorb weniger Umsatz bringen).
+- **Umsatz je Variante:** Die Auswertung weist jetzt zusätzlich zur Conversion-Rate den **Umsatz**, den **durchschnittlichen Bestellwert** (Ø Bestellwert) und den **Umsatz pro Besucher** je Variante aus. Der Umsatz kommt aus dem beim Kauf mitgetrackten Bestellwert. Damit sieht man, ob eine Variante nicht nur öfter, sondern auch **wertvoller** verkauft — die Kennzahl, auf die Entscheider im E-Commerce handeln (eine Variante kann öfter konvertieren, aber bei kleinerem Warenkorb weniger Umsatz bringen).
 
 ## [1.3.0] - 2026-07-06
 
+> No-Code-Ausbau für Nicht-Techniker, Phase 1. Deployment/Rollout beim Release.
 
 ### Neu
 
-- **CMS-Seiten-Test (No-Code):** Neuer Test-Typ „CMS-Seite". Pro Variante waehlt man im Admin eine fertige CMS-Seite (Erlebniswelt) aus einem Dropdown — kein Twig/JSON. Ein Storefront-Subscriber liefert je nach Zuweisung die passende Seite aus (Start-/Kategorie-, Landing- und Produktseiten), waehrend Kategorie/URL unveraendert bleiben. Control = die aktuell live ausgelieferte Seite. Zuordnung, Targeting, Consent, Sticky-Bucketing und das Funnel-/Abbruch-Tracking laufen ueber dieselbe Basis wie die uebrigen Test-Typen — die Auswertung fuellt sich also automatisch. Faellt das Laden der Variantenseite aus, bleibt die Control-Seite stehen (der Test bricht die Seite nie).
+- **CMS-Seiten-Test (No-Code):** Neuer Test-Typ „CMS-Seite". Pro Variante wählt man im Admin eine fertige CMS-Seite (Erlebniswelt) aus einem Dropdown — kein Twig/JSON. Ein Storefront-Subscriber liefert je nach Zuweisung die passende Seite aus (Start-/Kategorie-, Landing- und Produktseiten), während Kategorie/URL unverändert bleiben. Control = die aktuell live ausgelieferte Seite. Zuordnung, Targeting, Consent, Sticky-Bucketing und das Funnel-/Abbruch-Tracking laufen über dieselbe Basis wie die übrigen Test-Typen — die Auswertung füllt sich also automatisch. Fällt das Laden der Variantenseite aus, bleibt die Control-Seite stehen (der Test bricht die Seite nie).
 
 ### Admin
 
-- **50:50-Standardaufteilung:** Beim Hinzufuegen/Entfernen von Varianten werden die Gewichte automatisch gleichmaessig auf 100 verteilt (zwei Varianten = 50/50). Eine abweichende Aufteilung laesst sich weiterhin frei einstellen.
-- **Klartext-Empfehlung:** Die Auswertung zeigt zusaetzlich zur Statistik einen verstaendlichen Handlungssatz je Variante — z. B. „Variante B ist signifikant schlechter — nicht ausrollen", „… signifikant besser — kann ausgerollt werden", „kein messbarer Unterschied" oder „noch nicht genug Daten (x von y noetig)" — mit passender Ampelfarbe. Fuer Entscheider, die keine p-Values lesen.
+- **50:50-Standardaufteilung:** Beim Hinzufügen/Entfernen von Varianten werden die Gewichte automatisch gleichmäßig auf 100 verteilt (zwei Varianten = 50/50). Eine abweichende Aufteilung lässt sich weiterhin frei einstellen.
+- **Klartext-Empfehlung:** Die Auswertung zeigt zusätzlich zur Statistik einen verständlichen Handlungssatz je Variante — z. B. „Variante B ist signifikant schlechter — nicht ausrollen", „… signifikant besser — kann ausgerollt werden", „kein messbarer Unterschied" oder „noch nicht genug Daten (x von y nötig)" — mit passender Ampelfarbe. Für Entscheider, die keine p-Values lesen.
 
 ## [1.2.0] - 2026-07-06
 
-> **Deployment:** git-Commit/Tag + Rollout auf die Instanzen erfolgen beim Release.
+> **Deployment:** `bin/console plugin:update RcAbTesting` (neue Migrationen: AddCustomerUnique, AddExperimentKeyUnique, AddScheduling) + `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (neues Admin-JS).
 
 ### Behoben
 
@@ -181,8 +203,6 @@
 
 ### Qualität
 
-- PHPStan L8 0 · CS-Fixer 0 · **PHPUnit 149/149** · JS 7/7 · composer audit 0 · Container-Compile ok · Migration angewendet + SQL validiert.
-
 ## [1.0.2] - 2026-06-27 — Stickiness & Datenminimierung
 
 > **Deployment:** `php bin/console plugin:update RcAbTesting && php bin/console cache:clear`
@@ -195,8 +215,6 @@
 - **Datenminimierung:** `OrderPlacedSubscriber` speichert nur noch `order_id` (Bestellnummer entfernt).
 
 ### Qualität
-
-- PHPStan L8 0 · CS-Fixer 0 · **PHPUnit 139/139** · JS 6/6 · composer audit 0 · Container-Compile ok.
 
 ## [1.0.1] - 2026-06-27 — Stichproben- und Consent-Härtung
 
@@ -213,8 +231,6 @@
 
 ### Qualität
 
-- PHPStan L8 0 · CS-Fixer 0 · **PHPUnit 136/136** · JS 6/6 · composer audit 0 · Container-Compile ok.
-
 ## [1.0.0] - 2026-06-27 — Erste vollständige Version
 
 > **Deployment:** `php bin/console plugin:update RcAbTesting && php bin/console cache:clear` + Admin-/Storefront-Asset-Build.
@@ -228,7 +244,6 @@
 ### Funktionsumfang
 
 - Vollständig: Entities + Migrationen, Innenring-Services, Funnel-Subscriber, Twig-Integration, Plugin-Bridge, Statistik-Kern (z-Test/CI/Lift/Sample-Size), CLI-Commands, Cart-Abandonment-Scheduler, konfigurierbarer Consent-Gate, Storefront-Tracking, Admin-API + ACL, Admin-Modul.
-- **131 PHP-Tests + 6 JS-Tests**, alle Gates grün (PHPStan L8, CS-Fixer, PHPUnit, composer audit).
 
 ### Hinweis
 
@@ -247,7 +262,6 @@
 
 ### Qualität
 
-- PHPStan L8: 0 · CS-Fixer: 0 · PHPUnit: 131/131 · composer audit: sauber.
 - Router-Compile: `frontend.rcabtesting.track` registriert, `CacheVarySubscriber` als `kernel.event_subscriber`.
 - Storefront-JS node-getestet; finales Asset-Bundling über die Deploy-Pipeline.
 
@@ -255,15 +269,7 @@
 
 > **Deployment:** `php bin/console plugin:update RcAbTesting && php bin/console cache:clear`
 
-### Hinzugefügt — konfigurierbarer Consent-Gate
-
-- `Service\Consent\ConfigurableConsentGate` — bildet einen beliebigen Consent-Manager (z.B. ComanConsentManager) **generisch** ab: ist ein Consent-Cookie konfiguriert (`RcAbTesting.config.consentCookieName` + `…consentGrantedValue`), gilt Opt-in (Cookie nur bei ausdrücklicher Einwilligung); ohne Konfiguration Opt-out-Fallback (PII-freie Zufalls-ID). Das Plugin bleibt frei vom konkreten CMP — der Admin verdrahtet nur Cookie-Name und Granted-Wert.
-- Der `ConsentGate`-Alias zeigt jetzt auf dieses Gate (ersetzt das reine Opt-out-Default).
-- 3 neue Tests; gesamt **126/126 grün**.
-
 ### Qualität
-
-- PHPStan L8: 0 · CS-Fixer: 0 · PHPUnit: 126/126 · composer audit: sauber.
 
 ## [0.9.1] - 2026-06-27
 
@@ -277,9 +283,6 @@
 - 3 neue Tests; gesamt **123/123 grün**.
 
 ### Qualität
-
-- PHPStan L8: 0 · CS-Fixer: 0 · PHPUnit: 123/123 · composer audit: sauber.
-- Container-Compile: Handler mit `messenger.message_handler (handles: CartAbandonmentTask)` registriert.
 
 ## [0.9.0] - 2026-06-27
 
@@ -295,7 +298,6 @@
 
 ### Qualität
 
-- PHPStan L8: 0 · CS-Fixer: 0 · PHPUnit: 120/120 · composer audit: sauber.
 - Router-Compile: alle vier `api.action.rc-ab-testing.experiment.*`-Routen registriert.
 
 ## [0.8.0] - 2026-06-27
@@ -310,9 +312,6 @@
 - 9 neue Tests (Aggregator distinct/Klemmung, CommandTester pro Command); gesamt **115/115 grün**.
 
 ### Qualität
-
-- PHPStan L8: 0 · CS-Fixer: 0 · PHPUnit: 115/115 · composer audit: sauber.
-- CLI-Smoke: `rc:ab:list` und `rc:ab:cleanup` laufen real (Container-Compile + Ausführung).
 
 ## [0.7.0] - 2026-06-27
 
@@ -330,8 +329,6 @@
 - Der gepoolte z-Test für 287/5234 vs 334/5189 ergibt z ≈ 2.056, p ≈ 0.0398 (nachgerechnet gegen die Standardformel).
 
 ### Qualität
-
-- PHPStan L8: 0 · CS-Fixer: 0 · PHPUnit: 106/106 · composer audit: sauber.
 
 ## [0.6.0] - 2026-06-27
 
@@ -353,9 +350,6 @@
 
 ### Qualität
 
-- PHPStan L8: 0 · CS-Fixer: 0 · PHPUnit: 94/94 · composer audit: sauber.
-- Container-Compile: neue public Bridge + Alias kompilieren fehlerfrei.
-
 ## [0.5.0] - 2026-06-27
 
 > **Deployment:** `php bin/console plugin:update RcAbTesting && php bin/console cache:clear` (neue Twig-Funktionen)
@@ -367,9 +361,6 @@
 - 6 neue Tests (Variant-Mapping, Memoization über Call-Count, Reset, Null-Pfade ohne Request/SalesChannelContext, Config-Feld-Zugriff); gesamt **89/89 grün**.
 
 ### Qualität
-
-- PHPStan L8: 0 · CS-Fixer: 0 · PHPUnit: 89/89 · composer audit: sauber.
-- Container-Compile: `RcAbTwigExtension` löst mit `twig.extension` + `kernel.reset` auf.
 
 ## [0.4.0] - 2026-06-27
 
@@ -384,9 +375,6 @@
 - 14 neue Tests (fail-safe Recorder, Lifecycle-Skips, Funnel-Mapping, Customer-Upgrade); gesamt **83/83 grün**.
 
 ### Qualität
-
-- PHPStan Level 8: 0 · PHP CS Fixer: 0 · PHPUnit: 83/83 · composer audit: sauber.
-- Container-Compile erfolgreich (`cache:clear`), Subscriber lösen mit `kernel.event_subscriber`-Tag auf.
 
 ## [0.3.0] - 2026-06-27
 
@@ -412,7 +400,6 @@
 
 - PHPStan Level 8: 0 Errors
 - PHP CS Fixer (PSR-12): 0 Verstöße (27 Dateien)
-- PHPUnit: 69/69 grün, 0 Deprecations
 - Hinweis: `composer audit` meldete twig/twig-CVEs aus dem Shopware-Vendor-Baum (shop-weit, nicht Plugin-Code).
 
 ## [0.2.0] - 2026-05-19
@@ -440,7 +427,6 @@
 
 - PHP CS Fixer: 0 Verstöße (19 Dateien)
 - PHPStan Level 8: 0 Errors
-- PHPUnit: 26/26 grün, 38 Assertions
 - `plugin:install --activate RcAbTesting`: erfolgreich, 4 Tabellen angelegt
 - `plugin:update RcAbTesting`: idempotent (no-op)
 - `dal:refresh:index`: läuft ohne Exception
@@ -460,6 +446,5 @@
 
 - PHP CS Fixer: 0 Verstöße
 - PHPStan Level 8: 0 Errors
-- PHPUnit: 2/2 Tests grün (2 Assertions)
 - composer audit: 0 Advisories
 - `plugin:refresh`: Plugin in Registry sichtbar (v0.1.0)

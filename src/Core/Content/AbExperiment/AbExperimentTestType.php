@@ -17,23 +17,23 @@ final class AbExperimentTestType
 
     /**
      * No-Code-Variante: pro Variante wird ein registrierter Frontend-Schalter auf
-     * einen Wert gesetzt (z. B. Checkout „eine Seite" vs. „gefuehrt"). Der Wert
-     * landet in `config.<switchKey>`; das konsumierende Plugin liest ihn ueber
+     * einen Wert gesetzt (z. B. Checkout „eine Seite" vs. „geführt"). Der Wert
+     * landet in `config.<switchKey>`; das konsumierende Plugin liest ihn über
      * `ab_variant_config`. Siehe {@see \Ruhrcoder\RcAbTesting\Service\FrontendSwitch}.
      */
     public const FRONTEND_SWITCH = 'frontend_switch';
 
     /**
-     * No-Code-Variante: jede Variante traegt in `config.cmsPageId` eine CMS-Seite
+     * No-Code-Variante: jede Variante trägt in `config.cmsPageId` eine CMS-Seite
      * (Erlebniswelt). Der CmsPageVariantSubscriber liefert je Zuweisung die
-     * passende Seite aus. Kein Twig/Theme noetig.
+     * passende Seite aus. Kein Twig/Theme nötig.
      */
     public const CMS_PAGE = 'cms_page';
 
     /**
-     * Config-Schluessel, unter dem eine CMS-Seiten-Variante ihre Ziel-CMS-Seite
+     * Config-Schlüssel, unter dem eine CMS-Seiten-Variante ihre Ziel-CMS-Seite
      * ablegt. Bewusst hier als eine Quelle der Wahrheit (Admin schreibt, Backend
-     * liest denselben Schluessel).
+     * liest denselben Schlüssel).
      */
     public const CMS_PAGE_CONFIG_KEY = 'cmsPageId';
 

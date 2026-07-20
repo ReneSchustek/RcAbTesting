@@ -9,6 +9,8 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Ruhrcoder\RcAbTesting\Core\Content\AbAssignment\AbAssignmentCollection;
 use Ruhrcoder\RcAbTesting\Core\Content\AbAssignment\AbAssignmentEntity;
+use Ruhrcoder\RcAbTesting\Core\Content\AbEvent\AbEventCollection;
+use Ruhrcoder\RcAbTesting\Core\Content\AbEvent\AbEventEntity;
 use Ruhrcoder\RcAbTesting\Service\AbEventType;
 use Ruhrcoder\RcAbTesting\Service\EventTracker;
 use Ruhrcoder\RcAbTesting\Tests\Unit\Support\RunningRegistryTrait;
@@ -147,6 +149,70 @@ final class EventTrackerTest extends TestCase
         // Nach reset() (neuer Request) wird erneut abgefragt.
         $tracker->reset();
         $tracker->track(AbEventType::PAGE_VIEWED, null, [], 'visitor-1', $context);
+    }
+
+    public function testSameOrderIsRecordedOncePerExperimentOnRedispatch(): void
+    {
+        $assignmentRepository = $this->repositoryReturning($this->assignment('exp-a', 'var-a'));
+
+        $written = [];
+        $eventRepository = $this->createMock(EntityRepository::class);
+        $eventRepository->method('create')->willReturnCallback(function (array $payload) use (&$written): EntityWrittenContainerEvent {
+            foreach ($payload as $row) {
+                $event = new AbEventEntity();
+                $event->setId(Uuid::randomHex());
+                $event->setExperimentId($row['experimentId']);
+                $event->setMeta($row['meta']);
+                $written[] = $event;
+            }
+
+            return $this->createStub(EntityWrittenContainerEvent::class);
+        });
+        $eventRepository->method('search')->willReturnCallback(function () use (&$written): EntitySearchResult {
+            $result = $this->createStub(EntitySearchResult::class);
+            $result->method('getEntities')->willReturn(new AbEventCollection($written));
+
+            return $result;
+        });
+
+        $tracker = new EventTracker($assignmentRepository, $eventRepository, $this->runningRegistry(), new NullLogger());
+        $context = Context::createDefaultContext();
+
+        // Erster Dispatch schreibt das Order-Event; der zweite (Retry, gleiche
+        // order_id) darf Umsatz/Conversion nicht erneut zählen.
+        $tracker->track(AbEventType::CHECKOUT_ORDER_PLACED, 20.0, ['order_id' => 'order-1'], 'visitor-1', $context);
+        $tracker->reset();
+        $tracker->track(AbEventType::CHECKOUT_ORDER_PLACED, 20.0, ['order_id' => 'order-1'], 'visitor-1', $context);
+
+        self::assertCount(1, $written);
+    }
+
+    public function testEventWriteBumpsAssignmentLastSeenOncePerRequest(): void
+    {
+        $result = $this->createStub(EntitySearchResult::class);
+        $result->method('getEntities')->willReturn(new AbAssignmentCollection([$this->assignment('exp-a', 'var-a')]));
+
+        $updateCalls = 0;
+        $assignmentRepository = $this->createMock(EntityRepository::class);
+        $assignmentRepository->method('search')->willReturn($result);
+        $assignmentRepository->method('update')->willReturnCallback(function (array $updates) use (&$updateCalls): EntityWrittenContainerEvent {
+            ++$updateCalls;
+            self::assertArrayHasKey('lastSeenAt', $updates[0]);
+
+            return $this->createStub(EntityWrittenContainerEvent::class);
+        });
+
+        $eventRepository = $this->createMock(EntityRepository::class);
+        $eventRepository->method('create')->willReturn($this->createStub(EntityWrittenContainerEvent::class));
+
+        $tracker = new EventTracker($assignmentRepository, $eventRepository, $this->runningRegistry(), new NullLogger());
+        $context = Context::createDefaultContext();
+
+        // Zwei Events im selben Request -> last_seen_at wird nur EINMAL gebumpt.
+        $tracker->track(AbEventType::PAGE_VIEWED, null, [], 'visitor-1', $context);
+        $tracker->track(AbEventType::CHECKOUT_STARTED, null, [], 'visitor-1', $context);
+
+        self::assertSame(1, $updateCalls);
     }
 
     private function repositoryReturning(AbAssignmentEntity ...$assignments): EntityRepository

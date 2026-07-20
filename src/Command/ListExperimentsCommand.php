@@ -57,7 +57,7 @@ final class ListExperimentsCommand extends Command
 
         $rows = [];
         foreach ($experiments as $experiment) {
-            $rows[] = $this->row($experiment, $context);
+            $rows[] = $this->row($experiment);
         }
 
         $io->table(['Schlüssel', 'Status', 'Varianten', 'Zuordnungen', 'Conversions'], $rows);
@@ -68,9 +68,9 @@ final class ListExperimentsCommand extends Command
     /**
      * @return array{0: string, 1: string, 2: int, 3: int, 4: int}
      */
-    private function row(AbExperimentEntity $experiment, Context $context): array
+    private function row(AbExperimentEntity $experiment): array
     {
-        $stats = $this->statsAggregator->aggregate($experiment, $context);
+        $stats = $this->statsAggregator->aggregate($experiment);
         $assignments = array_sum(array_column($stats, 'assignments'));
         $conversions = array_sum(array_column($stats, 'conversions'));
 

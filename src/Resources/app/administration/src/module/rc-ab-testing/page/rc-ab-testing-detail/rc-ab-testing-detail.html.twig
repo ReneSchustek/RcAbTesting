@@ -115,16 +115,30 @@
                     :show-selection="false"
                     :show-actions="true">
                     <template #column-technicalKey="{ item }">
-                        <sw-text-field v-model:value="item.technicalKey"></sw-text-field>
+                        <sw-text-field
+                            v-model:value="item.technicalKey"
+                            :aria-label="$tc('rc-ab-testing.detail.variantKey')">
+                        </sw-text-field>
                     </template>
                     <template #column-name="{ item }">
-                        <sw-text-field v-model:value="item.name"></sw-text-field>
+                        <sw-text-field
+                            v-model:value="item.name"
+                            :aria-label="$tc('rc-ab-testing.detail.variantName')">
+                        </sw-text-field>
                     </template>
                     <template #column-weight="{ item }">
-                        <sw-number-field v-model:value="item.weight" :digits="0" :min="0"></sw-number-field>
+                        <sw-number-field
+                            v-model:value="item.weight"
+                            :digits="0"
+                            :min="0"
+                            :aria-label="$tc('rc-ab-testing.detail.variantWeight')">
+                        </sw-number-field>
                     </template>
                     <template #column-isControl="{ item }">
-                        <sw-checkbox-field v-model:value="item.isControl"></sw-checkbox-field>
+                        <sw-checkbox-field
+                            v-model:value="item.isControl"
+                            :aria-label="$tc('rc-ab-testing.detail.variantControl')">
+                        </sw-checkbox-field>
                     </template>
                     <template #column-config="{ item }">
                         <sw-single-select
@@ -132,6 +146,7 @@
                             :value="variantSwitchValue(item)"
                             :options="switchValueOptions"
                             show-clearable-button
+                            :aria-label="$tc('rc-ab-testing.detail.variantValue')"
                             :placeholder="$tc('rc-ab-testing.detail.variantSwitchPlaceholder')"
                             :help-text="$tc('rc-ab-testing.detail.variantSwitchHelp')"
                             @update:value="value => setVariantSwitchValue(item, value)">
@@ -141,6 +156,7 @@
                             entity="cms_page"
                             :value="variantCmsPageId(item)"
                             show-clearable-button
+                            :aria-label="$tc('rc-ab-testing.detail.variantPage')"
                             :placeholder="$tc('rc-ab-testing.detail.variantCmsPagePlaceholder')"
                             :help-text="$tc('rc-ab-testing.detail.variantCmsPageHelp')"
                             @update:value="value => setVariantCmsPageId(item, value)">
@@ -149,6 +165,7 @@
                             v-else
                             :value="variantConfigDrafts[item.id]"
                             placeholder="{ }"
+                            :aria-label="$tc('rc-ab-testing.detail.variantConfig')"
                             :help-text="$tc('rc-ab-testing.detail.variantConfigHelp')"
                             @update:value="value => setVariantConfigDraft(item.id, value)">
                         </sw-text-field>
@@ -169,330 +186,88 @@
             <sw-card :title="$tc('rc-ab-testing.detail.statsTitle')">
                 {% block rc_ab_testing_detail_card_stats_controls %}
                 <div class="rc-ab-testing-detail__decision">
-                    <span class="rc-ab-testing-detail__decision-label">{{ $tc('rc-ab-testing.detail.decisionMetric') }}</span>
                     <sw-single-select
                         v-model:value="experiment.decisionMetric"
                         :options="decisionMetricOptions"
+                        :label="$tc('rc-ab-testing.detail.decisionMetric')"
                         :help-text="$tc('rc-ab-testing.detail.decisionMetricHelp')">
                     </sw-single-select>
-                    <sw-button @click="loadStats">{{ $tc('rc-ab-testing.detail.refreshStats') }}</sw-button>
+                    <sw-button :is-loading="isLoadingStats" @click="loadStats">{{ $tc('rc-ab-testing.detail.refreshStats') }}</sw-button>
                 </div>
                 {% endblock %}
 
-                {% block rc_ab_testing_detail_card_stats_verdict %}
-                <sw-alert v-if="verdict" class="rc-ab-testing-detail__verdict" :variant="verdict.variant">
-                    {{ verdict.text }}
-                </sw-alert>
-                {% endblock %}
+                {# Auswertung und Verdikt werden nachgeladen — Screenreader erfahren
+                   die Aenderung nur ueber eine Live-Region. #}
+                <div
+                    class="rc-ab-testing-detail__live"
+                    aria-live="polite"
+                    :aria-busy="isLoadingStats ? 'true' : 'false'">
+                    {% block rc_ab_testing_detail_card_stats_verdict %}
+                    <sw-alert v-if="verdict" class="rc-ab-testing-detail__verdict" :variant="verdict.variant">
+                        {{ verdict.text }}
+                    </sw-alert>
+                    {% endblock %}
 
-                {% block rc_ab_testing_detail_card_stats_tabs %}
-                <div class="rc-ab-testing-detail__tabs">
-                    <button
-                        v-for="tab in statsTabs"
-                        :key="tab.key"
-                        type="button"
-                        class="rc-ab-testing-detail__tab"
-                        :class="{ 'is--active': activeStatsTab === tab.key, 'is--disabled': !tab.available }"
-                        :disabled="!tab.available"
-                        @click="setActiveStatsTab(tab.key)">
-                        {{ tab.label }}
-                        <span v-if="!tab.available" class="rc-ab-testing-detail__tab-hint">{{ $tc('rc-ab-testing.detail.tabSoon') }}</span>
-                    </button>
-                </div>
-                {% endblock %}
-
-                {% block rc_ab_testing_detail_card_stats_overview %}
-                <template v-if="activeStatsTab === 'overview'">
-                    <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
-                        {{ $tc('rc-ab-testing.detail.statsEmpty') }}
+                    {% block rc_ab_testing_detail_card_stats_tabs %}
+                    <div class="rc-ab-testing-detail__tabs" role="tablist" :aria-label="$tc('rc-ab-testing.detail.statsTitle')">
+                        <button
+                            v-for="(tab, tabIndex) in statsTabs"
+                            :key="tab.key"
+                            :ref="`tab-${tab.key}`"
+                            :id="`rc-ab-tab-${tab.key}`"
+                            type="button"
+                            role="tab"
+                            class="rc-ab-testing-detail__tab"
+                            :class="{ 'is--active': activeStatsTab === tab.key }"
+                            :aria-selected="activeStatsTab === tab.key ? 'true' : 'false'"
+                            :aria-controls="`rc-ab-panel-${tab.key}`"
+                            :tabindex="activeStatsTab === tab.key ? 0 : -1"
+                            @keydown="onTabKeydown($event, tabIndex)"
+                            @click="setActiveStatsTab(tab.key)">
+                            {{ tab.label }}
+                        </button>
                     </div>
-                    <template v-else>
-                        {% block rc_ab_testing_detail_card_stats_winner %}
-                        <sw-single-select
-                            v-model:value="winnerVariantId"
-                            :options="variantOptions"
-                            :placeholder="$tc('rc-ab-testing.detail.winnerNone')"
-                            :label="$tc('rc-ab-testing.detail.winner')">
-                        </sw-single-select>
-                        {% endblock %}
+                    {% endblock %}
 
-                        {% block rc_ab_testing_detail_card_stats_metric_cards %}
-                        <div v-if="metricCards.length" class="rc-ab-testing-detail__metric-cards">
-                            <div
-                                v-for="card in metricCards"
-                                :key="card.key"
-                                class="rc-ab-testing-detail__metric-card"
-                                :class="{ 'is--primary': card.isPrimary }">
-                                <div class="rc-ab-testing-detail__metric-label">
-                                    <span v-if="card.isPrimary" class="rc-ab-testing-detail__metric-tag">{{ $tc('rc-ab-testing.detail.decisionTag') }}</span>
-                                    {{ card.label }}
-                                </div>
-                                <div class="rc-ab-testing-detail__metric-value">{{ card.value }}</div>
-                                <div v-if="card.uplift" class="rc-ab-testing-detail__metric-uplift" :class="card.upliftClass">
-                                    {{ card.uplift }} {{ $tc('rc-ab-testing.detail.vsControl') }}
-                                </div>
-                            </div>
+                    {% block rc_ab_testing_detail_card_stats_panels %}
+                    <div
+                        v-for="tab in statsTabs"
+                        v-show="activeStatsTab === tab.key"
+                        :key="`panel-${tab.key}`"
+                        :id="`rc-ab-panel-${tab.key}`"
+                        role="tabpanel"
+                        tabindex="0"
+                        :aria-labelledby="`rc-ab-tab-${tab.key}`">
+                        <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
+                            {{ $tc('rc-ab-testing.detail.statsEmpty') }}
                         </div>
-                        {% endblock %}
-
-                        <sw-data-grid
-                            class="rc-ab-testing-detail__stats"
-                            :data-source="stats"
-                            :columns="scorecardColumns"
-                            :show-selection="false"
-                            :show-actions="false">
-                            <template #column-label-assignments="{ column }">
-                                <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.assignments')"></mt-icon></span>
-                            </template>
-                            <template #column-label-rate="{ column }">
-                                <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.rate')"></mt-icon></span>
-                            </template>
-                            <template #column-label-revenuePerVisitor="{ column }">
-                                <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.revenuePerVisitor')"></mt-icon></span>
-                            </template>
-                            <template #column-rate="{ item }">
-                                {{ formatRate(item.rate) }}
-                            </template>
-                            <template #column-revenue="{ item }">
-                                {{ formatCurrency(item.revenue) }}
-                            </template>
-                            <template #column-aov="{ item }">
-                                {{ formatCurrency(item.aov) }}
-                            </template>
-                            <template #column-revenuePerVisitor="{ item }">
-                                {{ formatCurrency(item.revenuePerVisitor) }}
-                            </template>
-                        </sw-data-grid>
-
-                {% block rc_ab_testing_detail_card_stats_evaluation %}
-                <div v-if="evaluation" class="rc-ab-testing-detail__evaluation">
-                    <h3>{{ $tc('rc-ab-testing.detail.evaluationTitle') }}</h3>
-                    <p>{{ $tc('rc-ab-testing.detail.confidenceLevel') }}: {{ (evaluation.confidenceLevel * 100).toFixed(1) }} %</p>
-
-                    <sw-alert v-if="evaluation.winnerKey" variant="success">
-                        {{ $tc('rc-ab-testing.detail.winnerResult') }}: {{ evaluation.winnerKey }}
-                    </sw-alert>
-                    <sw-alert v-else variant="info">
-                        {{ $tc('rc-ab-testing.detail.noWinner') }}
-                    </sw-alert>
-
-                    <sw-alert v-if="evaluation.sampleRatioMismatch === true" variant="warning">
-                        {{ $tc('rc-ab-testing.detail.srmWarning') }}
-                    </sw-alert>
-
-                    <sw-data-grid
-                        v-if="evaluation.comparisons.length"
-                        :data-source="evaluation.comparisons"
-                        :columns="[
-                            { property: 'variantKey', label: $tc('rc-ab-testing.detail.variantKey') },
-                            { property: 'lift', label: $tc('rc-ab-testing.detail.lift') },
-                            { property: 'pValue', label: $tc('rc-ab-testing.detail.pValue') },
-                            { property: 'ci', label: $tc('rc-ab-testing.detail.confidenceInterval') },
-                            { property: 'significant', label: $tc('rc-ab-testing.detail.significance') },
-                            { property: 'requiredSamplePerVariant', label: $tc('rc-ab-testing.detail.requiredSample') },
-                        ]"
-                        :show-selection="false"
-                        :show-actions="false">
-                        <template #column-label-lift="{ column }">
-                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.lift')"></mt-icon></span>
+                        <template v-else>
+                            <rc-ab-testing-stats-overview
+                                v-if="tab.key === 'overview'"
+                                v-model:winner-variant-id="winnerVariantId"
+                                :stats="stats"
+                                :evaluation="evaluation"
+                                :decision-metric="currentDecisionMetric"
+                                :variant-options="variantOptions">
+                            </rc-ab-testing-stats-overview>
+                            <rc-ab-testing-stats-segments
+                                v-else-if="tab.key === 'segments'"
+                                :segments="segments">
+                            </rc-ab-testing-stats-segments>
+                            <rc-ab-testing-stats-timeseries
+                                v-else-if="tab.key === 'time'"
+                                :time-series="timeSeries"
+                                :decision-metric="currentDecisionMetric"
+                                :decision-metric-label="decisionMetricLabel">
+                            </rc-ab-testing-stats-timeseries>
+                            <rc-ab-testing-stats-funnel
+                                v-else-if="tab.key === 'funnel'"
+                                :funnel="funnel">
+                            </rc-ab-testing-stats-funnel>
                         </template>
-                        <template #column-label-pValue="{ column }">
-                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.pValue')"></mt-icon></span>
-                        </template>
-                        <template #column-label-ci="{ column }">
-                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.confidenceInterval')"></mt-icon></span>
-                        </template>
-                        <template #column-label-significant="{ column }">
-                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.significance')"></mt-icon></span>
-                        </template>
-                        <template #column-label-requiredSamplePerVariant="{ column }">
-                            <span class="rc-ab-testing-detail__help-label">{{ column.label }}<mt-icon class="rc-ab-testing-detail__help-icon" name="regular-question-circle-s" size="12px" v-tooltip="$tc('rc-ab-testing.detail.help.requiredSample')"></mt-icon></span>
-                        </template>
-                        <template #column-lift="{ item }">{{ formatLift(item.lift) }}</template>
-                        <template #column-pValue="{ item }">{{ formatPValue(item.pValue) }}</template>
-                        <template #column-ci="{ item }">{{ formatInterval(item) }}</template>
-                        <template #column-significant="{ item }">{{ significanceLabel(item) }}</template>
-                    </sw-data-grid>
-
-                    {% block rc_ab_testing_detail_card_stats_recommendation %}
-                    <div v-if="plainRecommendations.length" class="rc-ab-testing-detail__recommendation">
-                        <h3>{{ $tc('rc-ab-testing.detail.recTitle') }}</h3>
-                        <sw-alert
-                            v-for="rec in plainRecommendations"
-                            :key="rec.key"
-                            :variant="rec.variant">
-                            {{ rec.text }}
-                        </sw-alert>
                     </div>
                     {% endblock %}
                 </div>
-                {% endblock %}
-                    </template>
-                </template>
-                {% endblock %}
-
-                {% block rc_ab_testing_detail_card_stats_segments %}
-                <template v-if="activeStatsTab === 'segments'">
-                    <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
-                        {{ $tc('rc-ab-testing.detail.statsEmpty') }}
-                    </div>
-                    <div v-else-if="!hasSegmentData" class="rc-ab-testing-detail__placeholder">
-                        {{ $tc('rc-ab-testing.detail.segmentsEmpty') }}
-                    </div>
-                    <template v-else>
-                        <div
-                            v-for="group in segmentGroups"
-                            :key="group.key"
-                            class="rc-ab-testing-detail__segment-group">
-                            <h3 class="rc-ab-testing-detail__segment-title">{{ group.title }}</h3>
-                            <div
-                                v-for="(seg, segIndex) in group.segments"
-                                :key="segIndex"
-                                class="rc-ab-testing-detail__segment">
-                                <div class="rc-ab-testing-detail__segment-head">
-                                    <span class="rc-ab-testing-detail__segment-name">{{ seg.label }}</span>
-                                    <span class="rc-ab-testing-detail__segment-size">{{ seg.size }} {{ $tc('rc-ab-testing.detail.assignments') }}</span>
-                                </div>
-                                <div class="rc-ab-testing-detail__segment-table">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>{{ $tc('rc-ab-testing.detail.variantKey') }}</th>
-                                                <th>{{ $tc('rc-ab-testing.detail.assignments') }}</th>
-                                                <th>{{ $tc('rc-ab-testing.detail.rate') }}</th>
-                                                <th>{{ $tc('rc-ab-testing.detail.revenuePerVisitor') }}</th>
-                                                <th>{{ $tc('rc-ab-testing.detail.segmentResult') }}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="variant in seg.variants" :key="variant.technicalKey">
-                                                <td>{{ variant.technicalKey }}</td>
-                                                <td>{{ variant.assignments }}</td>
-                                                <td>{{ variant.rate }}</td>
-                                                <td>{{ variant.revenuePerVisitor }}</td>
-                                                <td>
-                                                    <span
-                                                        class="rc-ab-testing-detail__seg-result"
-                                                        :class="`is--${variant.result.variant}`">
-                                                        {{ variant.result.text }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </template>
-                {% endblock %}
-
-                {% block rc_ab_testing_detail_card_stats_time %}
-                <template v-if="activeStatsTab === 'time'">
-                    <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
-                        {{ $tc('rc-ab-testing.detail.statsEmpty') }}
-                    </div>
-                    <div v-else-if="!timeSeriesReady" class="rc-ab-testing-detail__placeholder">
-                        {{ $tc('rc-ab-testing.detail.timeEmpty') }}
-                    </div>
-                    <template v-else>
-                        <p class="rc-ab-testing-detail__chart-caption">
-                            {{ $t('rc-ab-testing.detail.timeCaption', { metric: decisionMetricLabel }) }}
-                        </p>
-                        <div class="rc-ab-testing-detail__chart-wrap">
-                            <svg
-                                class="rc-ab-testing-detail__chart"
-                                :viewBox="'0 0 ' + timeSeriesChart.width + ' ' + timeSeriesChart.height"
-                                preserveAspectRatio="none"
-                                role="img"
-                                :aria-label="$tc('rc-ab-testing.detail.tabTime')">
-                                <line
-                                    v-for="(tick, tickIndex) in timeSeriesChart.yTicks"
-                                    :key="'grid' + tickIndex"
-                                    :x1="tick.x1" :y1="tick.y" :x2="tick.x2" :y2="tick.y"
-                                    class="rc-ab-testing-detail__chart-grid"></line>
-                                <text
-                                    v-for="(tick, tickIndex) in timeSeriesChart.yTicks"
-                                    :key="'ylabel' + tickIndex"
-                                    :x="tick.x1 - 8" :y="Number(tick.y) + 4"
-                                    text-anchor="end"
-                                    class="rc-ab-testing-detail__chart-axis">{{ tick.label }}</text>
-                                <text
-                                    v-for="(tick, tickIndex) in timeSeriesChart.xTicks"
-                                    :key="'xlabel' + tickIndex"
-                                    :x="tick.x" :y="timeSeriesChart.bottom + 18"
-                                    text-anchor="middle"
-                                    class="rc-ab-testing-detail__chart-axis">{{ tick.label }}</text>
-                                <polyline
-                                    v-for="serie in timeSeriesChart.series"
-                                    :key="'line' + serie.key"
-                                    :points="serie.line"
-                                    fill="none"
-                                    :stroke="serie.color"
-                                    stroke-width="2.5"></polyline>
-                                <circle
-                                    v-for="serie in timeSeriesChart.series"
-                                    :key="'end' + serie.key"
-                                    :cx="serie.end.x" :cy="serie.end.y" r="4"
-                                    :fill="serie.color" stroke="#ffffff" stroke-width="2"></circle>
-                            </svg>
-                        </div>
-                        <div class="rc-ab-testing-detail__chart-legend">
-                            <span
-                                v-for="serie in timeSeriesChart.series"
-                                :key="'legend' + serie.key"
-                                class="rc-ab-testing-detail__legend-item">
-                                <span class="rc-ab-testing-detail__legend-line" :style="{ background: serie.color }"></span>
-                                {{ serie.key }}
-                            </span>
-                        </div>
-                        <p class="rc-ab-testing-detail__chart-hint">{{ $tc('rc-ab-testing.detail.timeHint') }}</p>
-                    </template>
-                </template>
-                {% endblock %}
-
-                {% block rc_ab_testing_detail_card_stats_funnel %}
-                <template v-if="activeStatsTab === 'funnel'">
-                    <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
-                        {{ $tc('rc-ab-testing.detail.statsEmpty') }}
-                    </div>
-                    <div v-else-if="!funnelReady" class="rc-ab-testing-detail__placeholder">
-                        {{ $tc('rc-ab-testing.detail.funnelEmpty') }}
-                    </div>
-                    <template v-else>
-                        <p class="rc-ab-testing-detail__chart-caption">{{ $tc('rc-ab-testing.detail.funnelCaption') }}</p>
-                        <div class="rc-ab-testing-detail__funnel">
-                            <div
-                                v-for="(stage, stageIndex) in funnelView.stages"
-                                :key="stage.key"
-                                class="rc-ab-testing-detail__funnel-stage">
-                                <div class="rc-ab-testing-detail__funnel-stage-name">{{ stage.label }}</div>
-                                <div class="rc-ab-testing-detail__funnel-bars">
-                                    <div
-                                        v-for="row in stage.rows"
-                                        :key="row.key"
-                                        class="rc-ab-testing-detail__funnel-bar">
-                                        <span class="rc-ab-testing-detail__funnel-who">
-                                            <span class="rc-ab-testing-detail__funnel-swatch" :style="{ background: row.color }"></span>
-                                            {{ row.key }}
-                                        </span>
-                                        <span class="rc-ab-testing-detail__funnel-track">
-                                            <span
-                                                class="rc-ab-testing-detail__funnel-fill"
-                                                :style="{ width: (row.share * 100) + '%', background: row.color }"></span>
-                                        </span>
-                                        <span class="rc-ab-testing-detail__funnel-num">
-                                            {{ row.count }} · {{ formatRate(row.share) }}
-                                            <small v-if="row.drop !== null">{{ formatPercentPoints(row.drop) }}</small>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="rc-ab-testing-detail__chart-hint">{{ $tc('rc-ab-testing.detail.funnelHint') }}</p>
-                    </template>
-                </template>
-                {% endblock %}
             </sw-card>
             {% endblock %}
         </sw-card-view>

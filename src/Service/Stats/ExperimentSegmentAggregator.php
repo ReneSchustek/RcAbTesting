@@ -6,7 +6,6 @@ namespace Ruhrcoder\RcAbTesting\Service\Stats;
 
 use Doctrine\DBAL\Connection;
 use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentEntity;
-use Ruhrcoder\RcAbTesting\Service\AbEventType;
 use Shopware\Core\Framework\Uuid\Uuid;
 
 /**
@@ -26,6 +25,20 @@ final class ExperimentSegmentAggregator
     public const DEVICE = 'device';
     public const SALES_CHANNEL = 'sales_channel';
 
+    /**
+     * Join-Bedingung Event → Zuordnung. Bevorzugt die customer_id (kanonische
+     * Zuordnung je Kunde, UNIQUE(experiment, customer)), damit Cross-Device-
+     * Conversions eingeloggter Kunden demselben Segment zugeschrieben werden wie
+     * im globalen Scorecard — ein auf Gerät A gebucketer Kunde, der auf Gerät B
+     * kauft, fiele beim reinen visitor_id-Join sonst aus der Segment-Auswertung
+     * (Arbeitspaket AB35). Anonyme Events (ohne customer_id) joinen über visitor_id.
+     * Beide Zweige treffen dank der UNIQUE-Constraints genau eine Zuordnung.
+     */
+    private const ASSIGNMENT_JOIN =
+        'a.experiment_id = e.experiment_id AND ('
+        . '(e.customer_id IS NOT NULL AND a.customer_id = e.customer_id) '
+        . 'OR (e.customer_id IS NULL AND a.visitor_id = e.visitor_id))';
+
     public function __construct(
         private readonly Connection $connection,
     ) {
@@ -38,7 +51,7 @@ final class ExperimentSegmentAggregator
     public function aggregate(AbExperimentEntity $experiment, string $dimension): array
     {
         $segmentExpression = $this->segmentExpression($dimension);
-        $eventType = $experiment->getPrimaryMetric() ?? AbEventType::CHECKOUT_ORDER_PLACED;
+        $eventType = $experiment->getPrimaryMetricOrDefault();
         $experimentId = Uuid::fromHexToBytes($experiment->getId());
 
         $stats = [];
@@ -105,11 +118,11 @@ final class ExperimentSegmentAggregator
             \sprintf(
                 'SELECT LOWER(HEX(a.variant_id)) AS variant, %s AS seg, COUNT(DISTINCT e.visitor_id) AS c
                  FROM rc_ab_event e
-                 JOIN rc_ab_assignment a
-                   ON a.experiment_id = e.experiment_id AND a.visitor_id = e.visitor_id
+                 JOIN rc_ab_assignment a ON %s
                  WHERE e.experiment_id = :experimentId AND e.event_type = :eventType
                  GROUP BY a.variant_id, seg',
                 $segmentExpression,
+                self::ASSIGNMENT_JOIN,
             ),
             ['experimentId' => $experimentId, 'eventType' => $eventType],
         );
@@ -126,13 +139,13 @@ final class ExperimentSegmentAggregator
                  FROM (
                      SELECT LOWER(HEX(a.variant_id)) AS variant, %s AS seg, SUM(e.event_value) AS v
                      FROM rc_ab_event e
-                     JOIN rc_ab_assignment a
-                       ON a.experiment_id = e.experiment_id AND a.visitor_id = e.visitor_id
+                     JOIN rc_ab_assignment a ON %s
                      WHERE e.experiment_id = :experimentId AND e.event_type = :eventType
                      GROUP BY a.variant_id, seg, e.visitor_id
                  ) AS per_visitor
                  GROUP BY variant, seg',
                 $segmentExpression,
+                self::ASSIGNMENT_JOIN,
             ),
             ['experimentId' => $experimentId, 'eventType' => $eventType],
         );

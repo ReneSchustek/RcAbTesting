@@ -41,13 +41,13 @@ final class ExperimentEvaluator
      */
     public function evaluate(AbExperimentEntity $experiment, array $stats): array
     {
-        $variants = $this->variants($experiment);
+        $variants = $experiment->getVariantList();
         $confidenceLevel = $experiment->getTargetSignificance();
         // Ohne explizite Entscheidungs-Kennzahl (z. B. Alt-Experimente, reine
         // Unit-Test-Entities) auf die Conversion-Rate zurückfallen — die braucht
         // nur Zuordnungen/Conversions und ist damit immer berechenbar.
         $decisionMetric = $experiment->getDecisionMetric() ?? AbDecisionMetric::CONVERSION_RATE;
-        $control = $this->findControl($variants);
+        $control = $experiment->getControlVariant();
 
         $comparisons = [];
         $winnerKey = null;
@@ -225,19 +225,6 @@ final class ExperimentEvaluator
         return false;
     }
 
-    /**
-     * @param list<AbVariantEntity> $variants
-     */
-    private function findControl(array $variants): ?AbVariantEntity
-    {
-        foreach ($variants as $variant) {
-            if ($variant->isControl()) {
-                return $variant;
-            }
-        }
-
-        return null;
-    }
 
     /**
      * Normalisiert die (evtl. lückenhaften) Zähldaten einer Variante auf die volle
@@ -260,13 +247,4 @@ final class ExperimentEvaluator
         ];
     }
 
-    /**
-     * @return list<AbVariantEntity>
-     */
-    private function variants(AbExperimentEntity $experiment): array
-    {
-        $variants = $experiment->getVariants();
-
-        return $variants === null ? [] : array_values($variants->getElements());
-    }
 }

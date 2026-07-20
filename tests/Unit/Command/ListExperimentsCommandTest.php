@@ -26,7 +26,7 @@ final class ListExperimentsCommandTest extends TestCase
     {
         $command = new ListExperimentsCommand(
             $this->experimentRepository([$this->experiment()]),
-            new ExperimentStatsAggregator($this->assignmentRepository(), $this->connection()),
+            new ExperimentStatsAggregator($this->connection()),
         );
 
         $tester = new CommandTester($command);
@@ -40,7 +40,7 @@ final class ListExperimentsCommandTest extends TestCase
     {
         $command = new ListExperimentsCommand(
             $this->experimentRepository([]),
-            new ExperimentStatsAggregator($this->assignmentRepository(), $this->connection()),
+            new ExperimentStatsAggregator($this->connection()),
         );
 
         $tester = new CommandTester($command);
@@ -64,21 +64,20 @@ final class ListExperimentsCommandTest extends TestCase
         return $repository;
     }
 
-    private function assignmentRepository(): EntityRepository
-    {
-        $result = $this->createStub(EntitySearchResult::class);
-        $result->method('getTotal')->willReturn(500);
-
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('search')->willReturn($result);
-
-        return $repository;
-    }
-
     private function connection(): Connection
     {
         $connection = $this->createMock(Connection::class);
-        $connection->method('fetchOne')->willReturn(1);
+        $connection->method('fetchAllAssociative')->willReturnCallback(
+            static fn (string $sql): array => str_contains($sql, 'rc_ab_assignment')
+                ? [['v' => self::VARIANT_A, 'c' => '500']]
+                : [[
+                    'v' => self::VARIANT_A,
+                    'conversions' => '1',
+                    'orders' => '1',
+                    'revenue' => '0',
+                    'revenue_sum_sq' => '0',
+                ]],
+        );
 
         return $connection;
     }

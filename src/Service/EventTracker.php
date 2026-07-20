@@ -28,6 +28,9 @@ final class EventTracker implements ResetInterface
     /** @var array<string, list<AbAssignmentEntity>> Zuordnungen je Besucher/Kunde, memoized pro Request. */
     private array $assignmentMemo = [];
 
+    /** @var array<string, true> Bereits in diesem Request „gesehen"-markierte Zuordnungen (je ID). */
+    private array $seenMemo = [];
+
     /**
      * @param EntityRepository<AbAssignmentCollection> $assignmentRepository
      * @param EntityRepository<AbEventCollection>      $eventRepository
@@ -61,6 +64,24 @@ final class EventTracker implements ResetInterface
         $assignments = $this->runningAssignments($visitorId, $customerId, $runningIds, $context);
         if ($assignments === []) {
             return;
+        }
+
+        // last_seen_at der aktiven Zuordnungen mitziehen (einmal je Request und
+        // Zuordnung), damit es nie hinter das jüngste Event zurückfällt. Sonst
+        // könnten Anonymizer/Retention Zuordnung (nach last_seen_at) und Event
+        // (nach occurred_at) auf getrennten Zeitachsen erfassen und den
+        // visitor_id-Join brechen (Waisen-Events, Arbeitspaket AB39).
+        $this->markAssignmentsSeen($assignments, $context);
+
+        if ($eventType === AbEventType::CHECKOUT_ORDER_PLACED) {
+            // Idempotenz: eine Bestellung darf pro Experiment nur EINMAL als
+            // Conversion/Umsatz zählen. Ein erneuter Dispatch desselben
+            // CheckoutOrderPlacedEvent (Retry) würde Umsatz und AOV sonst
+            // verdoppeln (Arbeitspaket AB38). order_id ist global eindeutig.
+            $assignments = $this->withoutAlreadyRecordedOrder($assignments, $meta, $visitorId, $customerId, $context);
+            if ($assignments === []) {
+                return;
+            }
         }
 
         $cleanMeta = $this->sanitizeMeta($meta);
@@ -136,9 +157,82 @@ final class EventTracker implements ResetInterface
         return $this->assignmentMemo[$memoKey] = $assignments;
     }
 
+    /**
+     * Filtert Zuordnungen heraus, deren Experiment für diese Bestellung bereits
+     * ein order_placed-Event trägt — verhindert doppelte Umsatz-/Conversion-
+     * Zählung bei erneutem Event-Dispatch (Arbeitspaket AB38). Ohne order_id in den
+     * Metadaten ist keine Deduplizierung möglich; dann bleiben alle Zuordnungen.
+     *
+     * @param list<AbAssignmentEntity> $assignments
+     * @param array<string, mixed>     $meta
+     *
+     * @return list<AbAssignmentEntity>
+     */
+    private function withoutAlreadyRecordedOrder(array $assignments, array $meta, string $visitorId, ?string $customerId, Context $context): array
+    {
+        $orderId = $meta['order_id'] ?? null;
+        if (!\is_string($orderId) || $orderId === '') {
+            return $assignments;
+        }
+
+        $experimentIds = array_values(array_unique(array_map(
+            static fn (AbAssignmentEntity $assignment): string => $assignment->getExperimentId(),
+            $assignments,
+        )));
+
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('eventType', AbEventType::CHECKOUT_ORDER_PLACED));
+        $criteria->addFilter(new EqualsAnyFilter('experimentId', $experimentIds));
+        // Auf diesen Besucher/Kunden eingrenzen — hält die Treffermenge klein.
+        $criteria->addFilter($customerId !== null
+            ? new EqualsFilter('customerId', $customerId)
+            : new EqualsFilter('visitorId', $visitorId));
+
+        $recordedExperimentIds = [];
+        foreach ($this->eventRepository->search($criteria, $context)->getEntities() as $event) {
+            $eventMeta = $event->getMeta();
+            if (\is_array($eventMeta) && ($eventMeta['order_id'] ?? null) === $orderId) {
+                $recordedExperimentIds[$event->getExperimentId()] = true;
+            }
+        }
+
+        if ($recordedExperimentIds === []) {
+            return $assignments;
+        }
+
+        return array_values(array_filter(
+            $assignments,
+            static fn (AbAssignmentEntity $assignment): bool => !isset($recordedExperimentIds[$assignment->getExperimentId()]),
+        ));
+    }
+
+    /**
+     * Setzt `last_seen_at` der übergebenen Zuordnungen auf jetzt — je Zuordnung
+     * höchstens einmal pro Request (Hot-Path: mehrere Funnel-Events je Seite).
+     *
+     * @param list<AbAssignmentEntity> $assignments
+     */
+    private function markAssignmentsSeen(array $assignments, Context $context): void
+    {
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $updates = [];
+        foreach ($assignments as $assignment) {
+            if (isset($this->seenMemo[$assignment->getId()])) {
+                continue;
+            }
+            $this->seenMemo[$assignment->getId()] = true;
+            $updates[] = ['id' => $assignment->getId(), 'lastSeenAt' => $now];
+        }
+
+        if ($updates !== []) {
+            $this->assignmentRepository->update($updates, $context);
+        }
+    }
+
     public function reset(): void
     {
         $this->assignmentMemo = [];
+        $this->seenMemo = [];
     }
 
     /**

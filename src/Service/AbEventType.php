@@ -50,6 +50,20 @@ final class AbEventType
             return true;
         }
 
+        return self::isClientTrackable($eventType);
+    }
+
+    /**
+     * Ein Event-Typ darf aus dem Browser (anonymer Track-Endpunkt) gesendet
+     * werden, wenn er das `custom.`-Präfix trägt und dahinter mindestens ein
+     * Zeichen hat. Die Funnel-/Order-Typen der KNOWN-Liste entstehen dagegen
+     * ausschließlich serverseitig in den Subscribern — sie am öffentlichen
+     * Endpunkt zuzulassen erlaubte einem teilnehmenden Besucher, Conversions und
+     * Umsatz (`value`) zu fälschen und damit die Auswertung zu manipulieren
+     * (siehe Arbeitspaket AB33).
+     */
+    public static function isClientTrackable(string $eventType): bool
+    {
         return \str_starts_with($eventType, self::CUSTOM_PREFIX)
             && \strlen($eventType) > \strlen(self::CUSTOM_PREFIX);
     }

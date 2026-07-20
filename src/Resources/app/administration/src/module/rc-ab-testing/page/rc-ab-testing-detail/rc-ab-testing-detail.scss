@@ -1,14 +1,35 @@
+// Textfarben erfuellen 4.5:1 gegen Weiss, Grafiken/Icons 3:1 (BFSG/WCAG 2.1 AA).
+// Die frueheren Schiefergrau-Toene (#758ca3 = 3.5:1, #94a6b8 = 2.5:1) und das
+// helle Aktiv-Blau (#189eff = 2.85:1) lagen darunter.
+$rc-ab-text-muted: #52667a;   // 5.9:1
+$rc-ab-accent: #0d6ebf;       // 5.4:1
+$rc-ab-border: #d1d9e0;
+
 .rc-ab-testing-detail {
+    // Nur fuer Screenreader: visuell entfernt, aber im Baum und vorlesbar.
+    // `display: none` waere fuer Hilfsmittel unsichtbar.
+    &__visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
     // Klartext-Hinweis unter einem Eingabefeld (z. B. Erklaerung des Test-Typs).
     &__field-hint {
         margin: -8px 0 16px;
         font-size: 12.5px;
-        color: #52667a;
+        color: $rc-ab-text-muted;
     }
 
     &__decision {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         gap: 12px;
         flex-wrap: wrap;
         margin-bottom: 16px;
@@ -18,16 +39,11 @@
         }
     }
 
-    &__decision-label {
-        font-weight: 600;
-        color: #52667a;
-    }
-
     // Detail-Tab-Leiste der Auswertung (reiner Ansichtswechsel in der Karte).
     &__tabs {
         display: flex;
         gap: 4px;
-        border-bottom: 1px solid #d1d9e0;
+        border-bottom: 1px solid $rc-ab-border;
         margin-bottom: 20px;
     }
 
@@ -40,30 +56,23 @@
         padding: 10px 16px;
         font: inherit;
         font-weight: 600;
-        color: #758ca3;
+        color: $rc-ab-text-muted;
         cursor: pointer;
 
-        &:hover:not(.is--disabled) {
+        &:hover {
             color: #34495e;
         }
 
+        // Der Fokus muss sichtbar sein — die Leiste ist per Pfeiltasten bedienbar.
+        &:focus-visible {
+            outline: 2px solid $rc-ab-accent;
+            outline-offset: -2px;
+        }
+
         &.is--active {
-            color: #189eff;
-            border-bottom-color: #189eff;
+            color: $rc-ab-accent;
+            border-bottom-color: $rc-ab-accent;
         }
-
-        &.is--disabled {
-            color: #b6c2ce;
-            cursor: not-allowed;
-        }
-    }
-
-    &__tab-hint {
-        display: inline-block;
-        margin-left: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        color: #94a6b8;
     }
 
     // Kennzahl-Karten der Uebersicht.
@@ -92,7 +101,7 @@
         gap: 8px;
         font-size: 12px;
         font-weight: 600;
-        color: #52667a;
+        color: $rc-ab-text-muted;
         margin-bottom: 6px;
     }
 
@@ -102,7 +111,7 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
         color: #ffffff;
-        background: #189eff;
+        background: $rc-ab-accent;
         border-radius: 4px;
         padding: 1px 6px;
     }
@@ -119,7 +128,7 @@
         font-weight: 600;
 
         &.is--up {
-            color: #1a8a4f;
+            color: #146c3e;
         }
 
         &.is--down {
@@ -127,21 +136,22 @@
         }
 
         &.is--flat {
-            color: #758ca3;
+            color: $rc-ab-text-muted;
         }
     }
 
     &__placeholder {
         padding: 32px;
         text-align: center;
-        color: #758ca3;
+        color: $rc-ab-text-muted;
     }
 
     &__verdict {
         margin-bottom: 20px;
     }
 
-    // Hilfe-Icon in Tabellen-Headern (MouseOver erklaert den Fachbegriff).
+    // Hilfe-Erklaerung in Tabellen-Headern. Traeger ist ein Button, damit die
+    // Erklaerung auch per Tastatur erreichbar ist.
     &__help-label {
         display: inline-flex;
         align-items: center;
@@ -149,8 +159,19 @@
     }
 
     &__help-icon {
-        color: #94a6b8;
+        appearance: none;
+        background: none;
+        border: none;
+        padding: 0;
+        display: inline-flex;
+        color: $rc-ab-text-muted;
         cursor: help;
+
+        &:focus-visible {
+            outline: 2px solid $rc-ab-accent;
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
     }
 
     // Segmente-Tab.
@@ -163,7 +184,7 @@
         font-weight: 640;
         margin: 0 0 12px;
         padding-bottom: 6px;
-        border-bottom: 1px solid #d1d9e0;
+        border-bottom: 1px solid $rc-ab-border;
     }
 
     &__segment {
@@ -185,7 +206,7 @@
 
     &__segment-size {
         font-size: 12px;
-        color: #758ca3;
+        color: $rc-ab-text-muted;
     }
 
     &__segment-table {
@@ -211,10 +232,16 @@
             text-align: left;
         }
 
-        th {
-            color: #758ca3;
+        // Nur die Kopfzeile ist gedaempft; die Zeilenkoepfe (Varianten-Schluessel)
+        // bleiben normaler Text, obwohl sie technisch `th` sind.
+        thead th {
+            color: $rc-ab-text-muted;
             font-weight: 600;
             font-size: 12px;
+        }
+
+        tbody th {
+            font-weight: 400;
         }
     }
 
@@ -226,7 +253,7 @@
         border-radius: 999px;
 
         &.is--success {
-            color: #1a8a4f;
+            color: #146c3e;
             background: #e6f4ec;
         }
 
@@ -236,7 +263,7 @@
         }
 
         &.is--info {
-            color: #52667a;
+            color: $rc-ab-text-muted;
             background: #eef1f4;
         }
     }
@@ -244,7 +271,7 @@
     // Zeitverlauf-Chart (Inline-SVG).
     &__chart-caption {
         font-size: 13px;
-        color: #52667a;
+        color: $rc-ab-text-muted;
         margin: 0 0 12px;
     }
 
@@ -265,7 +292,7 @@
     }
 
     &__chart-axis {
-        fill: #94a6b8;
+        fill: $rc-ab-text-muted;
         font-size: 11px;
     }
 
@@ -281,19 +308,19 @@
         align-items: center;
         gap: 8px;
         font-size: 12.5px;
-        color: #52667a;
+        color: $rc-ab-text-muted;
     }
 
+    // Zeigt Farbe UND Strichmuster der Linie — Farbe allein traegt die
+    // Zuordnung nicht.
     &__legend-line {
-        width: 16px;
-        height: 3px;
-        border-radius: 2px;
+        flex: 0 0 auto;
         display: inline-block;
     }
 
     &__chart-hint {
         font-size: 12.5px;
-        color: #758ca3;
+        color: $rc-ab-text-muted;
         margin: 14px 0 0;
         padding-left: 12px;
         border-left: 2px solid #cdd7e0;
@@ -342,7 +369,7 @@
         align-items: center;
         gap: 7px;
         font-size: 12px;
-        color: #52667a;
+        color: $rc-ab-text-muted;
     }
 
     &__funnel-swatch {
@@ -373,7 +400,7 @@
         font-variant-numeric: tabular-nums;
 
         small {
-            color: #94a6b8;
+            color: $rc-ab-text-muted;
             margin-left: 4px;
         }
     }

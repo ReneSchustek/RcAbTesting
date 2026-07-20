@@ -1,0 +1,111 @@
+{% block rc_ab_testing_stats_overview %}
+<div class="rc-ab-testing-stats-overview">
+    {% block rc_ab_testing_stats_overview_winner %}
+    <sw-single-select
+        v-model:value="selectedWinner"
+        :options="variantOptions"
+        :placeholder="$tc('rc-ab-testing.detail.winnerNone')"
+        :label="$tc('rc-ab-testing.detail.winner')">
+    </sw-single-select>
+    {% endblock %}
+
+    {% block rc_ab_testing_stats_overview_metric_cards %}
+    <div v-if="metricCards.length" class="rc-ab-testing-detail__metric-cards">
+        <div
+            v-for="card in metricCards"
+            :key="card.key"
+            class="rc-ab-testing-detail__metric-card"
+            :class="{ 'is--primary': card.isPrimary }">
+            <div class="rc-ab-testing-detail__metric-label">
+                <span v-if="card.isPrimary" class="rc-ab-testing-detail__metric-tag">{{ $tc('rc-ab-testing.detail.decisionTag') }}</span>
+                {{ card.label }}
+            </div>
+            <div class="rc-ab-testing-detail__metric-value">{{ card.value }}</div>
+            <div v-if="card.uplift" class="rc-ab-testing-detail__metric-uplift" :class="card.upliftClass">
+                {{ card.uplift }} {{ $tc('rc-ab-testing.detail.vsControl') }}
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block rc_ab_testing_stats_overview_scorecard %}
+    <sw-data-grid
+        class="rc-ab-testing-detail__stats"
+        :data-source="stats"
+        :columns="scorecardColumns"
+        :show-selection="false"
+        :show-actions="false">
+        <template #column-label-assignments="{ column }">
+            <rc-ab-testing-help-label :label="column.label" :help="$tc('rc-ab-testing.detail.help.assignments')"></rc-ab-testing-help-label>
+        </template>
+        <template #column-label-rate="{ column }">
+            <rc-ab-testing-help-label :label="column.label" :help="$tc('rc-ab-testing.detail.help.rate')"></rc-ab-testing-help-label>
+        </template>
+        <template #column-label-revenuePerVisitor="{ column }">
+            <rc-ab-testing-help-label :label="column.label" :help="$tc('rc-ab-testing.detail.help.revenuePerVisitor')"></rc-ab-testing-help-label>
+        </template>
+        <template #column-rate="{ item }">{{ formatRate(item.rate) }}</template>
+        <template #column-revenue="{ item }">{{ formatCurrency(item.revenue) }}</template>
+        <template #column-aov="{ item }">{{ formatCurrency(item.aov) }}</template>
+        <template #column-revenuePerVisitor="{ item }">{{ formatCurrency(item.revenuePerVisitor) }}</template>
+    </sw-data-grid>
+    {% endblock %}
+
+    {% block rc_ab_testing_stats_overview_evaluation %}
+    <div v-if="evaluation" class="rc-ab-testing-detail__evaluation">
+        <h4>{{ $tc('rc-ab-testing.detail.evaluationTitle') }}</h4>
+        <p>{{ $tc('rc-ab-testing.detail.confidenceLevel') }}: {{ (evaluation.confidenceLevel * 100).toFixed(1) }} %</p>
+
+        <sw-alert v-if="evaluation.winnerKey" variant="success">
+            {{ $tc('rc-ab-testing.detail.winnerResult') }}: {{ evaluation.winnerKey }}
+        </sw-alert>
+        <sw-alert v-else variant="info">
+            {{ $tc('rc-ab-testing.detail.noWinner') }}
+        </sw-alert>
+
+        <sw-alert v-if="evaluation.sampleRatioMismatch === true" variant="warning">
+            {{ $tc('rc-ab-testing.detail.srmWarning') }}
+        </sw-alert>
+
+        <sw-data-grid
+            v-if="evaluation.comparisons.length"
+            :data-source="evaluation.comparisons"
+            :columns="comparisonColumns"
+            :show-selection="false"
+            :show-actions="false">
+            <template #column-label-lift="{ column }">
+                <rc-ab-testing-help-label :label="column.label" :help="$tc('rc-ab-testing.detail.help.lift')"></rc-ab-testing-help-label>
+            </template>
+            <template #column-label-pValue="{ column }">
+                <rc-ab-testing-help-label :label="column.label" :help="$tc('rc-ab-testing.detail.help.pValue')"></rc-ab-testing-help-label>
+            </template>
+            <template #column-label-ci="{ column }">
+                <rc-ab-testing-help-label :label="column.label" :help="$tc('rc-ab-testing.detail.help.confidenceInterval')"></rc-ab-testing-help-label>
+            </template>
+            <template #column-label-significant="{ column }">
+                <rc-ab-testing-help-label :label="column.label" :help="$tc('rc-ab-testing.detail.help.significance')"></rc-ab-testing-help-label>
+            </template>
+            <template #column-label-requiredSamplePerVariant="{ column }">
+                <rc-ab-testing-help-label :label="column.label" :help="$tc('rc-ab-testing.detail.help.requiredSample')"></rc-ab-testing-help-label>
+            </template>
+            <template #column-lift="{ item }">{{ formatLift(item.lift) }}</template>
+            <template #column-pValue="{ item }">{{ formatPValue(item.pValue) }}</template>
+            <template #column-ci="{ item }">{{ formatInterval(item) }}</template>
+            <template #column-significant="{ item }">{{ significanceLabel(item) }}</template>
+        </sw-data-grid>
+
+        {% block rc_ab_testing_stats_overview_recommendation %}
+        <div v-if="recommendations.length" class="rc-ab-testing-detail__recommendation">
+            <h4>{{ $tc('rc-ab-testing.detail.recTitle') }}</h4>
+            <sw-alert
+                v-for="recommendation in recommendations"
+                :key="recommendation.key"
+                :variant="recommendation.variant">
+                {{ recommendation.text }}
+            </sw-alert>
+        </div>
+        {% endblock %}
+    </div>
+    {% endblock %}
+</div>
+{% endblock %}

@@ -41,5 +41,26 @@ final class VisitorDataAnonymizerTest extends TestCase
             self::assertStringContainsString('`anonymized_at` IS NULL', $statement['sql']);
             self::assertSame('2026-03-01 00:00:00.000', $statement['params']['cutoff']);
         }
+
+        // Nur die Event-Tabelle traegt eine `meta`-Spalte mit Personenbezug — nur
+        // dort wird sie geleert (Arbeitspaket AB34); die Assignment-Tabelle bleibt unberuehrt.
+        $eventSql = $this->statementFor($statements, 'rc_ab_event');
+        $assignmentSql = $this->statementFor($statements, 'rc_ab_assignment');
+        self::assertStringContainsString('`meta` = NULL', $eventSql);
+        self::assertStringNotContainsString('`meta`', $assignmentSql);
+    }
+
+    /**
+     * @param list<array{sql: string, params: array<string, mixed>}> $statements
+     */
+    private function statementFor(array $statements, string $table): string
+    {
+        foreach ($statements as $statement) {
+            if (str_contains($statement['sql'], $table)) {
+                return $statement['sql'];
+            }
+        }
+
+        self::fail(\sprintf('Kein UPDATE-Statement fuer %s gefunden.', $table));
     }
 }

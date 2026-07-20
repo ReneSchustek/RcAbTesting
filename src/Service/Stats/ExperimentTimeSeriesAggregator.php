@@ -6,7 +6,6 @@ namespace Ruhrcoder\RcAbTesting\Service\Stats;
 
 use Doctrine\DBAL\Connection;
 use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentEntity;
-use Ruhrcoder\RcAbTesting\Service\AbEventType;
 use Shopware\Core\Framework\Uuid\Uuid;
 
 /**
@@ -34,7 +33,7 @@ final class ExperimentTimeSeriesAggregator
      */
     public function aggregate(AbExperimentEntity $experiment): array
     {
-        $eventType = $experiment->getPrimaryMetric() ?? AbEventType::CHECKOUT_ORDER_PLACED;
+        $eventType = $experiment->getPrimaryMetricOrDefault();
         $experimentId = Uuid::fromHexToBytes($experiment->getId());
 
         $days = [];

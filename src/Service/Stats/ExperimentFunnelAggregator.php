@@ -10,8 +10,8 @@ use Ruhrcoder\RcAbTesting\Service\AbEventType;
 use Shopware\Core\Framework\Uuid\Uuid;
 
 /**
- * Zaehlt je Variante die Besucher, die jede Funnel-Stufe erreicht haben — als
- * distinct Besucher je Stufen-Event. Bezugsgroesse (100 %) sind die Zuordnungen
+ * Zählt je Variante die Besucher, die jede Funnel-Stufe erreicht haben — als
+ * distinct Besucher je Stufen-Event. Bezugsgröße (100 %) sind die Zuordnungen
  * der Variante (die Teilnehmer); jede Stufe wird als Anteil daran ausgewiesen, so
  * wird sichtbar, WO eine Variante Besucher verliert.
  *

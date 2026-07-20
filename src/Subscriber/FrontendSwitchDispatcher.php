@@ -12,19 +12,25 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Ruft die registrierten {@see FrontendSwitchAdapter} zur Render-Zeit auf — je
  * Adapter mit dem aktiven Wert seines Schalters, sofern der Besucher einem Wert
- * zugeordnet ist. So werden Fremd-Plugins ueber ihren konkreten Adapter geschaltet,
+ * zugeordnet ist. So werden Fremd-Plugins über ihren konkreten Adapter geschaltet,
  * ohne dass RcAbTesting sie kennt. Ohne registrierte Adapter (nur eigene Plugins,
  * die selbst lesen) ist der Subscriber ein No-Op.
  */
 final class FrontendSwitchDispatcher implements EventSubscriberInterface
 {
+    /** @var list<FrontendSwitchAdapter> */
+    private readonly array $adapters;
+
     /**
      * @param iterable<FrontendSwitchAdapter> $adapters
      */
     public function __construct(
         private readonly FrontendSwitchResolver $resolver,
-        private readonly iterable $adapters,
+        iterable $adapters,
     ) {
+        // Getaggte Iteratoren einmalig materialisieren, damit onRender die
+        // Leerprüfung ohne Konsumieren eines Generators machen kann.
+        $this->adapters = $adapters instanceof \Traversable ? iterator_to_array($adapters, false) : array_values($adapters);
     }
 
     /**
@@ -37,6 +43,15 @@ final class FrontendSwitchDispatcher implements EventSubscriberInterface
 
     public function onRender(StorefrontRenderEvent $event): void
     {
+        // Ohne registrierten Adapter ist der Dispatcher ein No-Op — dann NICHT
+        // resolver->all() aufrufen: das würde auf jedem Storefront-Render die
+        // Schalter-Varianten auflösen und eine Zuordnung schreiben (DAL-Write auf
+        // dem Hot-Path), obwohl niemand den Wert konsumiert (Arbeitspaket AB45). Eigene
+        // Plugins lesen den Wert bei Bedarf selbst über die Twig-Funktion.
+        if ($this->adapters === []) {
+            return;
+        }
+
         $values = $this->resolver->all();
         if ($values === []) {
             return;

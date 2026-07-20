@@ -1,7 +1,7 @@
 {
     "name": "ruhrcoder/rc-ab-testing",
-    "description": "A/B-Tests für Shopware: Twig-/Theme-/Feature-Flag-Varianten mit Sticky-Bucketing, Funnel-Tracking und Auswertung.",
-    "version": "1.12.0",
+    "description": "A/B-Tests für Shopware: Twig-/Theme-/Feature-Flag- sowie No-Code-Varianten (CMS-Seiten-Vergleich, Frontend-Schalter) mit Sticky-Bucketing, Funnel-Tracking und statistischer Auswertung.",
+    "version": "1.13.0",
     "type": "shopware-platform-plugin",
     "license": "MIT",
     "authors": [
@@ -27,13 +27,16 @@
             "en-GB": "A/B Testing"
         },
         "description": {
-            "de-DE": "A/B-Tests für Shopware: Twig-/Theme-/Feature-Flag-Varianten mit Sticky-Bucketing pro Besucher, Funnel-Tracking über Cart, Order, Login und Auswertung mit Konfidenzintervallen.",
-            "en-GB": "A/B testing for Shopware: Twig/theme/feature-flag variants with sticky per-visitor bucketing, cart/order/login funnel tracking, and statistical evaluation."
+            "de-DE": "A/B-Tests für Shopware: Twig-/Theme-/Feature-Flag- sowie No-Code-Varianten (CMS-Seiten-Vergleich, Frontend-Schalter) mit Sticky-Bucketing pro Besucher, Funnel-Tracking über Cart, Order, Login und Auswertung mit Konfidenzintervallen.",
+            "en-GB": "A/B testing for Shopware: Twig/theme/feature-flag and no-code variants (CMS page comparison, frontend switches) with sticky per-visitor bucketing, cart/order/login funnel tracking, and statistical evaluation."
         }
     },
     "config": {
         "allow-plugins": {
             "symfony/runtime": true
+        },
+        "platform": {
+            "php": "8.2.0"
         }
     },
     "autoload": {

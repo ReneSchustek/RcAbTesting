@@ -6,6 +6,7 @@ namespace Ruhrcoder\RcAbTesting\Core\Content\AbExperiment;
 
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantCollection;
 use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
+use Ruhrcoder\RcAbTesting\Service\AbEventType;
 use Shopware\Core\Content\Rule\RuleEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityIdTrait;
@@ -321,5 +322,41 @@ final class AbExperimentEntity extends Entity
     public function setVariants(?AbVariantCollection $variants): void
     {
         $this->variants = $variants;
+    }
+
+    /**
+     * Varianten als indizierte Liste (leer, wenn nicht geladen). Zentralisiert das
+     * zuvor fünffach kopierte `array_values(getVariants()->getElements())`-Muster
+     * (Arbeitspaket AB44).
+     *
+     * @return list<AbVariantEntity>
+     */
+    public function getVariantList(): array
+    {
+        return $this->variants === null ? [] : array_values($this->variants->getElements());
+    }
+
+    /**
+     * Die Control-Variante des Experiments oder null.
+     */
+    public function getControlVariant(): ?AbVariantEntity
+    {
+        foreach ($this->getVariantList() as $variant) {
+            if ($variant->isControl()) {
+                return $variant;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Die Primär-Metrik (welches Event als Conversion zählt) oder der Default
+     * `checkout.order_placed`, wenn keine gesetzt ist. Zentralisiert den zuvor in
+     * drei Aggregatoren wiederholten Fallback (Arbeitspaket AB44).
+     */
+    public function getPrimaryMetricOrDefault(): string
+    {
+        return $this->primaryMetric ?? AbEventType::CHECKOUT_ORDER_PLACED;
     }
 }

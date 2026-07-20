@@ -82,6 +82,9 @@ final class ExperimentRegistry
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('status', AbExperimentStatus::RUNNING));
         $criteria->addAssociation('variants');
+        // Defensiver Cap gegen unbegrenzte Result-Sets (AB49); real laufen nur
+        // wenige Experimente gleichzeitig.
+        $criteria->setLimit(500);
 
         /** @var list<AbExperimentEntity> $experiments */
         $experiments = array_values($this->experimentRepository->search($criteria, $context)->getEntities()->getElements());

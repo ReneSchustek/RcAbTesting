@@ -76,6 +76,7 @@ final class ExperimentScheduleTaskHandler extends ScheduledTaskHandler
         $criteria->addFilter(new EqualsAnyFilter('status', [AbExperimentStatus::DRAFT, AbExperimentStatus::PAUSED]));
         $criteria->addFilter(new RangeFilter('scheduledStartAt', [RangeFilter::LTE => $now->format(Defaults::STORAGE_DATE_TIME_FORMAT)]));
         $criteria->addAssociation('variants');
+        $criteria->setLimit(500); // defensiver Cap (AB49)
 
         $updates = [];
         foreach ($this->search($criteria, $context) as $experiment) {
@@ -114,6 +115,7 @@ final class ExperimentScheduleTaskHandler extends ScheduledTaskHandler
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('status', AbExperimentStatus::RUNNING));
         $criteria->addFilter(new RangeFilter('scheduledEndAt', [RangeFilter::LTE => $now->format(Defaults::STORAGE_DATE_TIME_FORMAT)]));
+        $criteria->setLimit(500); // defensiver Cap (AB49)
 
         $updates = [];
         foreach ($this->search($criteria, $context) as $experiment) {

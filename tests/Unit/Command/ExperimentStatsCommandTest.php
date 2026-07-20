@@ -30,7 +30,7 @@ final class ExperimentStatsCommandTest extends TestCase
     {
         $command = new ExperimentStatsCommand(
             new ExperimentLookup($this->experimentRepository()),
-            new ExperimentStatsAggregator($this->assignmentRepository(1000), $this->connection(60)),
+            new ExperimentStatsAggregator($this->connection(assignments: 1000, conversions: 60)),
             new StatisticsCalculator(new NormalDistribution()),
         );
 
@@ -53,7 +53,7 @@ final class ExperimentStatsCommandTest extends TestCase
 
         $command = new ExperimentStatsCommand(
             new ExperimentLookup($repository),
-            new ExperimentStatsAggregator($this->assignmentRepository(0), $this->connection(0)),
+            new ExperimentStatsAggregator($this->connection(assignments: 0, conversions: 0)),
             new StatisticsCalculator(new NormalDistribution()),
         );
 
@@ -73,21 +73,33 @@ final class ExperimentStatsCommandTest extends TestCase
         return $repository;
     }
 
-    private function assignmentRepository(int $total): EntityRepository
-    {
-        $result = $this->createStub(EntitySearchResult::class);
-        $result->method('getTotal')->willReturn($total);
-
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('search')->willReturn($result);
-
-        return $repository;
-    }
-
-    private function connection(int $conversions): Connection
+    /**
+     * Beide Varianten bekommen dieselben Kennzahlen — hier geht es um das Rendern
+     * der Tabelle und der Signifikanz-Zeile, nicht um einen Gewinner.
+     */
+    private function connection(int $assignments, int $conversions): Connection
     {
         $connection = $this->createMock(Connection::class);
-        $connection->method('fetchOne')->willReturn($conversions);
+        $connection->method('fetchAllAssociative')->willReturnCallback(
+            static function (string $sql) use ($assignments, $conversions): array {
+                if (str_contains($sql, 'rc_ab_assignment')) {
+                    return [
+                        ['v' => self::VARIANT_CONTROL, 'c' => (string) $assignments],
+                        ['v' => self::VARIANT_ENHANCER, 'c' => (string) $assignments],
+                    ];
+                }
+
+                $totals = static fn (string $variantId): array => [
+                    'v' => $variantId,
+                    'conversions' => (string) $conversions,
+                    'orders' => (string) $conversions,
+                    'revenue' => '0',
+                    'revenue_sum_sq' => '0',
+                ];
+
+                return [$totals(self::VARIANT_CONTROL), $totals(self::VARIANT_ENHANCER)];
+            },
+        );
 
         return $connection;
     }

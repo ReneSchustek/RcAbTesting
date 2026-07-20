@@ -6,8 +6,8 @@ namespace Ruhrcoder\RcAbTesting\Service\FrontendSwitch;
 
 /**
  * Sammelt die registrierten Frontend-Schalter (getaggte Services) und stellt sie
- * der Admin-Oberflaeche bereit. Kein Universalschalter — nur die konkret
- * angemeldeten, frontend-wirksamen Faelle.
+ * der Admin-Oberfläche bereit. Kein Universalschalter — nur die konkret
+ * angemeldeten, frontend-wirksamen Fälle.
  */
 final class FrontendSwitchRegistry
 {

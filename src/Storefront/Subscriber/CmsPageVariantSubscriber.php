@@ -29,7 +29,7 @@ use Symfony\Component\HttpFoundation\Request;
  * Seite die Control-Seite eines laufenden CMS-Experiments ist und der Besucher
  * einer Nicht-Control-Variante zugeordnet wurde.
  *
- * Der `resolve()`-Aufruf haengt den Besucher ins bestehende Bucketing/Tracking
+ * Der `resolve()`-Aufruf hängt den Besucher ins bestehende Bucketing/Tracking
  * ein (Sticky, Targeting, Consent, Funnel-Events) — die CMS-Auslieferung nutzt
  * also dieselbe Zuordnungs- und Auswertungsbasis wie die Twig-Variante.
  *

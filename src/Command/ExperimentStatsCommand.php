@@ -48,8 +48,8 @@ final class ExperimentStatsCommand extends Command
 
         $io->title(\sprintf('Experiment: %s (%s)', $experiment->getTechnicalKey(), $experiment->getStatus()));
 
-        $variants = $this->variants($experiment);
-        $stats = $this->statsAggregator->aggregate($experiment, $context);
+        $variants = $experiment->getVariantList();
+        $stats = $this->statsAggregator->aggregate($experiment);
 
         $io->table(['Variante', 'Control', 'Zuordnungen', 'Conversions', 'Rate'], array_map(
             fn (AbVariantEntity $variant): array => $this->variantRow($variant, $stats[$variant->getId()] ?? ['assignments' => 0, 'conversions' => 0]),
@@ -125,15 +125,5 @@ final class ExperimentStatsCommand extends Command
         }
 
         return \sprintf('%.2f %%', $conversions / $assignments * 100);
-    }
-
-    /**
-     * @return list<AbVariantEntity>
-     */
-    private function variants(AbExperimentEntity $experiment): array
-    {
-        $variants = $experiment->getVariants();
-
-        return $variants === null ? [] : array_values($variants->getElements());
     }
 }

@@ -25,8 +25,12 @@ final class VisitorDataAnonymizerIntegrationTest extends IntegrationTestCase
         $this->insertExperiment($experimentId);
 
         // Alte Zeilen (vor der Frist), gleicher Besucher in Assignment UND Event.
+        // Das Event traegt personenbeziehbare meta-Schluessel, die mit anonymisiert werden muessen.
         $this->insertAssignment($experimentId, 'visitor-old', self::OLD, Uuid::randomHex());
-        $this->insertEvent($experimentId, 'visitor-old', 'checkout.order_placed', self::OLD, Uuid::randomHex());
+        $this->insertEvent($experimentId, 'visitor-old', 'checkout.order_placed', self::OLD, Uuid::randomHex(), [
+            'customer_id' => Uuid::randomHex(),
+            'order_id' => Uuid::randomHex(),
+        ]);
         // Junge Zeile (nach der Frist) — bleibt unberührt.
         $this->insertAssignment($experimentId, 'visitor-recent', self::RECENT, Uuid::randomHex());
 
@@ -53,6 +57,13 @@ final class VisitorDataAnonymizerIntegrationTest extends IntegrationTestCase
             ['t' => self::OLD],
         );
         self::assertSame($expectedHash, $oldEventVisitor);
+
+        // meta (mit customer_id/order_id) ist nach der Anonymisierung entfernt (Arbeitspaket AB34).
+        $oldEventMeta = $this->connection->fetchOne(
+            'SELECT `meta` FROM `rc_ab_event` WHERE `occurred_at` = :t',
+            ['t' => self::OLD],
+        );
+        self::assertNull($oldEventMeta);
 
         // Junge Zeile unberührt.
         $recentVisitor = $this->connection->fetchOne(

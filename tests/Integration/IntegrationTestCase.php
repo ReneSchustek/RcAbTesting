@@ -91,6 +91,8 @@ abstract class IntegrationTestCase extends TestCase
                 `variant_id` BINARY(16) NOT NULL,
                 `visitor_id` VARCHAR(64) NOT NULL,
                 `customer_id` BINARY(16) NULL,
+                `sales_channel_id` BINARY(16) NULL,
+                `device` VARCHAR(16) NULL,
                 `last_seen_at` DATETIME(3) NOT NULL,
                 `anonymized_at` DATETIME(3) NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -104,6 +106,9 @@ abstract class IntegrationTestCase extends TestCase
                 `visitor_id` VARCHAR(64) NOT NULL,
                 `customer_id` BINARY(16) NULL,
                 `event_type` VARCHAR(64) NOT NULL,
+                `event_value` DOUBLE NULL,
+                `meta` LONGTEXT NULL,
+                `session_id` VARCHAR(64) NULL,
                 `occurred_at` DATETIME(3) NOT NULL,
                 `anonymized_at` DATETIME(3) NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -120,27 +125,33 @@ abstract class IntegrationTestCase extends TestCase
         ]);
     }
 
-    protected function insertEvent(string $experimentIdHex, string $visitorId, string $eventType, string $occurredAt, ?string $customerIdHex = null): void
+    /**
+     * @param array<string, mixed>|null $meta
+     */
+    protected function insertEvent(string $experimentIdHex, string $visitorId, string $eventType, string $occurredAt, ?string $customerIdHex = null, ?array $meta = null, ?string $variantIdHex = null, ?float $eventValue = null): void
     {
         $this->connection->insert('rc_ab_event', [
             'id' => Uuid::randomBytes(),
             'experiment_id' => Uuid::fromHexToBytes($experimentIdHex),
-            'variant_id' => Uuid::randomBytes(),
+            'variant_id' => $variantIdHex !== null ? Uuid::fromHexToBytes($variantIdHex) : Uuid::randomBytes(),
             'visitor_id' => $visitorId,
             'customer_id' => $customerIdHex !== null ? Uuid::fromHexToBytes($customerIdHex) : null,
             'event_type' => $eventType,
+            'event_value' => $eventValue,
+            'meta' => $meta !== null ? (string) json_encode($meta) : null,
             'occurred_at' => $occurredAt,
         ]);
     }
 
-    protected function insertAssignment(string $experimentIdHex, string $visitorId, string $lastSeenAt, ?string $customerIdHex = null, ?string $anonymizedAt = null): void
+    protected function insertAssignment(string $experimentIdHex, string $visitorId, string $lastSeenAt, ?string $customerIdHex = null, ?string $anonymizedAt = null, ?string $device = null, ?string $variantIdHex = null): void
     {
         $this->connection->insert('rc_ab_assignment', [
             'id' => Uuid::randomBytes(),
             'experiment_id' => Uuid::fromHexToBytes($experimentIdHex),
-            'variant_id' => Uuid::randomBytes(),
+            'variant_id' => $variantIdHex !== null ? Uuid::fromHexToBytes($variantIdHex) : Uuid::randomBytes(),
             'visitor_id' => $visitorId,
             'customer_id' => $customerIdHex !== null ? Uuid::fromHexToBytes($customerIdHex) : null,
+            'device' => $device,
             'last_seen_at' => $lastSeenAt,
             'anonymized_at' => $anonymizedAt,
         ]);

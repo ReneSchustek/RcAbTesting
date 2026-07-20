@@ -6,7 +6,7 @@ namespace Ruhrcoder\RcAbTesting\Service\FrontendSwitch;
 
 /**
  * Erster konkreter Frontend-Schalter: die Checkout-Darstellung — als eine Seite
- * vs. schrittweise gefuehrt. Ein eigenes Rc-Checkout-Plugin liest den Wert ueber
+ * vs. schrittweise geführt. Ein eigenes Rc-Checkout-Plugin liest den Wert über
  * `ab_variant_config('checkout_layout')` und rendert entsprechend; wo Kunden
  * abbrechen, zeigt die Funnel-Auswertung.
  */

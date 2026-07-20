@@ -37,7 +37,7 @@ final class RcAbTwigExtension extends AbstractExtension
     }
 
     /**
-     * Aktiver Wert eines Frontend-Schalters fuer den aktuellen Besucher (z. B.
+     * Aktiver Wert eines Frontend-Schalters für den aktuellen Besucher (z. B.
      * `ab_switch('checkout_layout')` -> „guided") oder null. So liest ein eigenes
      * Plugin/Template die A/B-Entscheidung ohne Kenntnis des Experiments.
      */

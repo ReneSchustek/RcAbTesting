@@ -13,16 +13,16 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Ermittelt den aktiven Wert eines Frontend-Schalters fuer den aktuellen Besucher:
- * ueber alle laufenden Experimente vom Typ „frontend_switch" wird die zugewiesene
- * Variante aufgeloest und ihr Schalter-Wert aus der Config gelesen. Zentraler
- * Zugriffspunkt fuer BEIDE Wege — eigene Plugins/Templates ueber die Twig-Funktion
- * `ab_switch`, Fremd-Plugin-Adapter (Subscriber) ueber diesen Service. Kein
+ * Ermittelt den aktiven Wert eines Frontend-Schalters für den aktuellen Besucher:
+ * über alle laufenden Experimente vom Typ „frontend_switch" wird die zugewiesene
+ * Variante aufgelöst und ihr Schalter-Wert aus der Config gelesen. Zentraler
+ * Zugriffspunkt für BEIDE Wege — eigene Plugins/Templates über die Twig-Funktion
+ * `ab_switch`, Fremd-Plugin-Adapter (Subscriber) über diesen Service. Kein
  * Eingriff ins Zielplugin: der Wert wird nur bereitgestellt.
  *
  * Pro Request memoized; `kernel.reset` leert das Memo im Worker-Betrieb.
  */
-final class FrontendSwitchResolver implements ResetInterface
+final class FrontendSwitchResolver implements FrontendSwitchValueResolver, ResetInterface
 {
     /** @var array<string, string|null> */
     private array $memo = [];
@@ -48,7 +48,7 @@ final class FrontendSwitchResolver implements ResetInterface
     }
 
     /**
-     * Alle aktiven Schalter-Werte des aktuellen Besuchers (Schluessel => Wert).
+     * Alle aktiven Schalter-Werte des aktuellen Besuchers (Schlüssel => Wert).
      *
      * @return array<string, string>
      */

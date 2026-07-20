@@ -1,0 +1,12 @@
+{% block rc_ab_testing_help_label %}
+<span class="rc-ab-testing-detail__help-label">
+    {{ label }}
+    <button
+        type="button"
+        class="rc-ab-testing-detail__help-icon"
+        :aria-label="help"
+        v-tooltip="help">
+        <mt-icon name="regular-question-circle-s" size="12px" aria-hidden="true"></mt-icon>
+    </button>
+</span>
+{% endblock %}

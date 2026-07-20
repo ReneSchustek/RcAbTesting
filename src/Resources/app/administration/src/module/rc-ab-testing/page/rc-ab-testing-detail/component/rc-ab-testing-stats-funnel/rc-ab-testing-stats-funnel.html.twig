@@ -1,0 +1,69 @@
+{% block rc_ab_testing_stats_funnel %}
+<div class="rc-ab-testing-stats-funnel">
+    <div v-if="!isReady" class="rc-ab-testing-detail__placeholder">
+        {{ $tc('rc-ab-testing.detail.funnelEmpty') }}
+    </div>
+    <template v-else>
+        <p class="rc-ab-testing-detail__chart-caption">{{ $tc('rc-ab-testing.detail.funnelCaption') }}</p>
+        <div class="rc-ab-testing-detail__funnel">
+            <div
+                v-for="stage in funnelView.stages"
+                :key="stage.key"
+                class="rc-ab-testing-detail__funnel-stage">
+                <div class="rc-ab-testing-detail__funnel-stage-name">{{ stage.label }}</div>
+                <div class="rc-ab-testing-detail__funnel-bars">
+                    <div
+                        v-for="row in stage.rows"
+                        :key="row.key"
+                        class="rc-ab-testing-detail__funnel-bar">
+                        <span class="rc-ab-testing-detail__funnel-who">
+                            <span class="rc-ab-testing-detail__funnel-swatch" :style="{ background: row.color }" aria-hidden="true"></span>
+                            {{ row.key }}
+                        </span>
+                        <span
+                            class="rc-ab-testing-detail__funnel-track"
+                            role="img"
+                            :aria-label="`${row.key}: ${formatRate(row.share)}`">
+                            <span
+                                class="rc-ab-testing-detail__funnel-fill"
+                                :style="{ width: (row.share * 100) + '%', background: row.color }"></span>
+                        </span>
+                        <span class="rc-ab-testing-detail__funnel-num">
+                            {{ row.count }} · {{ formatRate(row.share) }}
+                            <small v-if="row.drop !== null">{{ formatPercentPoints(row.drop) }}</small>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% block rc_ab_testing_stats_funnel_table %}
+        <table class="rc-ab-testing-detail__visually-hidden">
+            <caption>{{ $tc('rc-ab-testing.detail.funnelCaption') }}</caption>
+            <thead>
+                <tr>
+                    <th scope="col">{{ $tc('rc-ab-testing.detail.funnelTableStage') }}</th>
+                    <th scope="col">{{ $tc('rc-ab-testing.detail.variantKey') }}</th>
+                    <th scope="col">{{ $tc('rc-ab-testing.detail.funnelTableVisitors') }}</th>
+                    <th scope="col">{{ $tc('rc-ab-testing.detail.funnelTableShare') }}</th>
+                    <th scope="col">{{ $tc('rc-ab-testing.detail.funnelTableDrop') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template v-for="stage in funnelView.stages" :key="'ft-' + stage.key">
+                    <tr v-for="row in stage.rows" :key="'ft-' + stage.key + '-' + row.key">
+                        <th scope="row">{{ stage.label }}</th>
+                        <td>{{ row.key }}</td>
+                        <td>{{ row.count }}</td>
+                        <td>{{ formatRate(row.share) }}</td>
+                        <td>{{ row.drop !== null ? formatPercentPoints(row.drop) : '—' }}</td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+        {% endblock %}
+
+        <p class="rc-ab-testing-detail__chart-hint">{{ $tc('rc-ab-testing.detail.funnelHint') }}</p>
+    </template>
+</div>
+{% endblock %}

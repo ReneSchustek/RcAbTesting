@@ -82,7 +82,7 @@ final class EndExperimentCommand extends Command
 
     private function resolveWinnerId(AbExperimentEntity $experiment, string $variantKey): ?string
     {
-        foreach ($experiment->getVariants()?->getElements() ?? [] as $variant) {
+        foreach ($experiment->getVariantList() as $variant) {
             if ($variant instanceof AbVariantEntity && $variant->getTechnicalKey() === $variantKey) {
                 return $variant->getId();
             }

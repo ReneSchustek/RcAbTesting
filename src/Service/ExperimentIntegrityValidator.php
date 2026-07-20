@@ -40,7 +40,7 @@ final class ExperimentIntegrityValidator
      */
     public function firstStartViolation(AbExperimentEntity $experiment): ?string
     {
-        $variants = $this->variants($experiment);
+        $variants = $experiment->getVariantList();
 
         $violation = $this->firstViolationForVariants($variants);
         if ($violation !== null) {
@@ -48,12 +48,10 @@ final class ExperimentIntegrityValidator
         }
 
         // CMS-Seiten-Test: jede Variante muss eine CMS-Seite tragen, sonst
-        // gaebe es fuer einen Teil der Besucher keine ausspielbare Seite.
+        // gäbe es für einen Teil der Besucher keine ausspielbare Seite.
         if ($experiment->getTestType() === AbExperimentTestType::CMS_PAGE) {
             foreach ($variants as $variant) {
-                $config = $variant->getConfig();
-                $cmsPageId = \is_array($config) ? ($config[AbExperimentTestType::CMS_PAGE_CONFIG_KEY] ?? null) : null;
-                if (!\is_string($cmsPageId) || $cmsPageId === '') {
+                if ($variant->getCmsPageId() === null) {
                     return self::VIOLATION_CMS_PAGE_MISSING;
                 }
             }
@@ -102,13 +100,4 @@ final class ExperimentIntegrityValidator
         return self::MESSAGES[$code] ?? 'Ungültige Experiment-Konfiguration.';
     }
 
-    /**
-     * @return list<AbVariantEntity>
-     */
-    private function variants(AbExperimentEntity $experiment): array
-    {
-        $variants = $experiment->getVariants();
-
-        return $variants === null ? [] : array_values($variants->getElements());
-    }
 }

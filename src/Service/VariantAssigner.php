@@ -59,7 +59,7 @@ final class VariantAssigner
         if (!$persistAssignment) {
             // Cookieloser/Bot-Request: deterministisch bucketen, aber nichts persistieren,
             // damit die Stichprobe nicht mit Einmal-„Besuchern" verfälscht wird.
-            return $this->bucketer->pick($this->bucketer->bucketFor($visitorId, $experimentTechnicalKey), $this->variantList($experiment));
+            return $this->bucketer->pick($this->bucketer->bucketFor($visitorId, $experimentTechnicalKey), $experiment->getVariantList());
         }
 
         // Cross-Device: ist der Kunde angemeldet, folgt die Variante dem Kunden,
@@ -155,7 +155,7 @@ final class VariantAssigner
     {
         $context = $salesChannelContext->getContext();
         $bucket = $this->bucketer->bucketFor($visitorId, $experiment->getTechnicalKey());
-        $variant = $this->bucketer->pick($bucket, $this->variantList($experiment));
+        $variant = $this->bucketer->pick($bucket, $experiment->getVariantList());
         if ($variant === null) {
             return null;
         }
@@ -285,13 +285,4 @@ final class VariantAssigner
         return null;
     }
 
-    /**
-     * @return list<AbVariantEntity>
-     */
-    private function variantList(AbExperimentEntity $experiment): array
-    {
-        $variants = $experiment->getVariants();
-
-        return $variants === null ? [] : array_values($variants->getElements());
-    }
 }

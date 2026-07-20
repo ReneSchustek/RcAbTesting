@@ -65,10 +65,10 @@ final class StatisticsCalculator
     }
 
     /**
-     * Vergleicht die Mittelwerte einer stetigen Grösse (z. B. Umsatz je Besucher)
+     * Vergleicht die Mittelwerte einer stetigen Größe (z. B. Umsatz je Besucher)
      * zwischen Control (a) und Variante (b). Anders als {@see calculate} prüft dies
      * keine Proportion, sondern die Differenz zweier Mittelwerte per Welch-z-Test
-     * (grosszahlige Normal-Approximation, für A/B-Stichproben mit tausenden
+     * (großzahlige Normal-Approximation, für A/B-Stichproben mit tausenden
      * Besuchern angemessen). Eingaben sind je Seite Fallzahl, Summe und Quadrat-
      * summe der Einzelwerte — daraus folgen Mittelwert und Stichproben-Varianz,
      * ohne die Einzelwerte materialisieren zu müssen. Degenerierte Eingaben
@@ -112,7 +112,9 @@ final class StatisticsCalculator
         }
 
         $zScore = ($meanB - $meanA) / $standardError;
-        $pValue = 2.0 * (1.0 - $this->normal->cdf(\abs($zScore)));
+        // Auf [0,1] klemmen: die erf-Approximation der cdf kann bei sehr grossen
+        // |z| minimal ueber 1 liefern, sodass 2*(1-cdf) leicht negativ wuerde (AB49).
+        $pValue = max(0.0, min(1.0, 2.0 * (1.0 - $this->normal->cdf(\abs($zScore)))));
         $zCritical = $this->normal->ppf(1.0 - $alpha / 2.0);
 
         return [
@@ -177,7 +179,8 @@ final class StatisticsCalculator
         }
 
         $zScore = ($rateB - $rateA) / $standardError;
-        $pValue = 2.0 * (1.0 - $this->normal->cdf(\abs($zScore)));
+        // Auf [0,1] geklemmt (cdf-Approximation, siehe compareMeans, AB49).
+        $pValue = max(0.0, min(1.0, 2.0 * (1.0 - $this->normal->cdf(\abs($zScore)))));
 
         return [$zScore, $pValue];
     }

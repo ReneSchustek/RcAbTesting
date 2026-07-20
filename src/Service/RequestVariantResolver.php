@@ -66,7 +66,7 @@ final class RequestVariantResolver implements ResetInterface
         // Nur persistieren, wenn die Besucher-ID aus einem echten Cookie stammt.
         $persist = $request->attributes->get(VisitorIdResolver::PERSISTENT_ATTRIBUTE) === true;
         // Geräteklasse am HTTP-Rand aus dem User-Agent ableiten und mitgeben — die
-        // Zuordnung haelt sie fuer die Segment-Auswertung fest.
+        // Zuordnung hält sie für die Segment-Auswertung fest.
         $device = $this->deviceClassResolver->resolve($request->headers->get('User-Agent'));
         $variant = $this->variantAssigner->assign($experimentKey, $visitorId, $salesChannelContext, $persist, $device);
         if ($variant !== null) {

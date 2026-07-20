@@ -1,0 +1,91 @@
+{% block rc_ab_testing_stats_timeseries %}
+<div class="rc-ab-testing-stats-timeseries">
+    <div v-if="!isReady" class="rc-ab-testing-detail__placeholder">
+        {{ $tc('rc-ab-testing.detail.timeEmpty') }}
+    </div>
+    <template v-else>
+        <p class="rc-ab-testing-detail__chart-caption">{{ caption }}</p>
+
+        {% block rc_ab_testing_stats_timeseries_chart %}
+        <div class="rc-ab-testing-detail__chart-wrap">
+            <svg
+                class="rc-ab-testing-detail__chart"
+                :viewBox="'0 0 ' + chart.width + ' ' + chart.height"
+                preserveAspectRatio="none"
+                role="img"
+                :aria-label="chartDescription">
+                <desc>{{ chartDescription }}</desc>
+                <line
+                    v-for="(tick, tickIndex) in chart.yTicks"
+                    :key="'grid' + tickIndex"
+                    :x1="tick.x1" :y1="tick.y" :x2="tick.x2" :y2="tick.y"
+                    class="rc-ab-testing-detail__chart-grid"></line>
+                <text
+                    v-for="(tick, tickIndex) in chart.yTicks"
+                    :key="'ylabel' + tickIndex"
+                    :x="tick.x1 - 8" :y="Number(tick.y) + 4"
+                    text-anchor="end"
+                    class="rc-ab-testing-detail__chart-axis">{{ tick.label }}</text>
+                <text
+                    v-for="(tick, tickIndex) in chart.xTicks"
+                    :key="'xlabel' + tickIndex"
+                    :x="tick.x" :y="chart.bottom + 18"
+                    text-anchor="middle"
+                    class="rc-ab-testing-detail__chart-axis">{{ tick.label }}</text>
+                <polyline
+                    v-for="serie in chart.series"
+                    :key="'line' + serie.key"
+                    :points="serie.line"
+                    fill="none"
+                    :stroke="serie.color"
+                    :stroke-dasharray="serie.dash"
+                    stroke-width="2.5"></polyline>
+                <circle
+                    v-for="serie in chart.series"
+                    :key="'end' + serie.key"
+                    :cx="serie.end.x" :cy="serie.end.y" r="4"
+                    :fill="serie.color" stroke="#ffffff" stroke-width="2"></circle>
+            </svg>
+        </div>
+        {% endblock %}
+
+        {% block rc_ab_testing_stats_timeseries_legend %}
+        <div class="rc-ab-testing-detail__chart-legend">
+            <span
+                v-for="serie in chart.series"
+                :key="'legend' + serie.key"
+                class="rc-ab-testing-detail__legend-item">
+                <svg class="rc-ab-testing-detail__legend-line" width="24" height="6" aria-hidden="true">
+                    <line
+                        x1="0" y1="3" x2="24" y2="3"
+                        :stroke="serie.color"
+                        :stroke-dasharray="serie.dash"
+                        stroke-width="3"></line>
+                </svg>
+                {{ serie.key }} · {{ serie.endLabel }}
+            </span>
+        </div>
+        {% endblock %}
+
+        {% block rc_ab_testing_stats_timeseries_table %}
+        <table class="rc-ab-testing-detail__visually-hidden">
+            <caption>{{ caption }}</caption>
+            <thead>
+                <tr>
+                    <th scope="col">{{ $tc('rc-ab-testing.detail.timeAxisDate') }}</th>
+                    <th v-for="column in chart.table.columns" :key="'th' + column" scope="col">{{ column }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="row in chart.table.rows" :key="row.key">
+                    <th scope="row">{{ row.label }}</th>
+                    <td v-for="cell in row.values" :key="row.key + cell.key">{{ cell.value }}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endblock %}
+
+        <p class="rc-ab-testing-detail__chart-hint">{{ $tc('rc-ab-testing.detail.timeHint') }}</p>
+    </template>
+</div>
+{% endblock %}

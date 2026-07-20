@@ -60,7 +60,9 @@ final class CustomerLoginSubscriber implements EventSubscriberInterface
         } catch (\Throwable $exception) {
             // Fail-safe: scheitert die Verknüpfung, darf der Login nicht abbrechen.
             $this->logger->error('A/B-Customer-Upgrade fehlgeschlagen', [
-                'customerId' => $customerId,
+                // Nur ein gekürzter Hash statt der Kunden-UUID — als Korrelation
+                // ausreichend, kein Personenbezug im Log (AB49).
+                'customerRef' => substr(hash('sha256', $customerId), 0, 12),
                 'exception' => $exception,
             ]);
         }

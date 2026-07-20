@@ -1,0 +1,55 @@
+{% block rc_ab_testing_stats_segments %}
+<div class="rc-ab-testing-stats-segments">
+    <div v-if="!hasSegmentData" class="rc-ab-testing-detail__placeholder">
+        {{ $tc('rc-ab-testing.detail.segmentsEmpty') }}
+    </div>
+    <template v-else>
+        <div
+            v-for="group in segmentGroups"
+            :key="group.key"
+            class="rc-ab-testing-detail__segment-group">
+            <h4 class="rc-ab-testing-detail__segment-title">{{ group.title }}</h4>
+            <div
+                v-for="(segment, segmentIndex) in group.segments"
+                :key="segmentIndex"
+                class="rc-ab-testing-detail__segment">
+                <div class="rc-ab-testing-detail__segment-head">
+                    <span class="rc-ab-testing-detail__segment-name">{{ segment.label }}</span>
+                    <span class="rc-ab-testing-detail__segment-size">{{ segment.size }} {{ $tc('rc-ab-testing.detail.assignments') }}</span>
+                </div>
+                <div class="rc-ab-testing-detail__segment-table">
+                    <table>
+                        <caption class="rc-ab-testing-detail__visually-hidden">
+                            {{ group.title }}: {{ segment.label }}
+                        </caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">{{ $tc('rc-ab-testing.detail.variantKey') }}</th>
+                                <th scope="col">{{ $tc('rc-ab-testing.detail.assignments') }}</th>
+                                <th scope="col">{{ $tc('rc-ab-testing.detail.rate') }}</th>
+                                <th scope="col">{{ $tc('rc-ab-testing.detail.revenuePerVisitor') }}</th>
+                                <th scope="col">{{ $tc('rc-ab-testing.detail.segmentResult') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="variant in segment.variants" :key="variant.technicalKey">
+                                <th scope="row">{{ variant.technicalKey }}</th>
+                                <td>{{ variant.assignments }}</td>
+                                <td>{{ variant.rate }}</td>
+                                <td>{{ variant.revenuePerVisitor }}</td>
+                                <td>
+                                    <span
+                                        class="rc-ab-testing-detail__seg-result"
+                                        :class="`is--${variant.result.variant}`">
+                                        {{ variant.result.text }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>
+{% endblock %}

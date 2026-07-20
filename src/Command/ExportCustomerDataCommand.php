@@ -87,6 +87,7 @@ final class ExportCustomerDataCommand extends Command
                 'experimentId' => $assignment->getExperimentId(),
                 'variantId' => $assignment->getVariantId(),
                 'visitorId' => $assignment->getVisitorId(),
+                'device' => $assignment->getDevice(),
                 'assignedAt' => $assignment->getAssignedAt()->format(\DateTimeInterface::ATOM),
                 'lastSeenAt' => $assignment->getLastSeenAt()->format(\DateTimeInterface::ATOM),
             ];

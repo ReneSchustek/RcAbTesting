@@ -22,6 +22,31 @@ final class AbEventTypeTest extends TestCase
         self::assertFalse(AbEventType::isValid($eventType));
     }
 
+    public function testCustomEventsAreClientTrackable(): void
+    {
+        self::assertTrue(AbEventType::isClientTrackable('custom.newsletter_signup'));
+    }
+
+    #[DataProvider('serverOnlyTypes')]
+    public function testServerSideTypesAreNotClientTrackable(string $eventType): void
+    {
+        // Funnel-/Order-Typen der KNOWN-Liste duerfen nicht aus dem Browser
+        // kommen (Arbeitspaket AB33) — sie bleiben serverseitig gueltig (isValid), sind
+        // aber nicht client-trackbar.
+        self::assertTrue(AbEventType::isValid($eventType));
+        self::assertFalse(AbEventType::isClientTrackable($eventType));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function serverOnlyTypes(): iterable
+    {
+        foreach (AbEventType::KNOWN as $known) {
+            yield $known => [$known];
+        }
+    }
+
     /**
      * @return iterable<string, array{string}>
      */

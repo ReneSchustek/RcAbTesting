@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAbTesting\Service\FrontendSwitch;
 
 /**
- * Frontend-Schalter fuer den Versandkostenfrei-Hinweis (RcCheckout): anzeigen vs.
- * ausblenden. RcCheckout liest den Wert ueber den {@see FrontendSwitchResolver}
- * und unterdrueckt seinen Indikator bei „off" — so laesst sich die Wirkung des
+ * Frontend-Schalter für den Versandkostenfrei-Hinweis (RcCheckout): anzeigen vs.
+ * ausblenden. RcCheckout liest den Wert über den {@see FrontendSwitchResolver}
+ * und unterdrückt seinen Indikator bei „off" — so lässt sich die Wirkung des
  * Hinweises auf Conversion/Umsatz A/B-testen.
  */
 final class FreeShippingIndicatorSwitch implements FrontendSwitch

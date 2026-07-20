@@ -38,6 +38,7 @@
         <service id="Ruhrcoder\RcAbTesting\Service\VisitorIdResolver">
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Consent\ConsentGate"/>
             <argument type="service" id="logger"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <service id="Ruhrcoder\RcAbTesting\Service\ExperimentRegistry">
@@ -50,6 +51,7 @@
             <argument type="service" id="rc_ab_assignment.repository"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\VisitorBucketer"/>
             <argument type="service" id="logger"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <service id="Ruhrcoder\RcAbTesting\Service\EventTracker">
@@ -58,6 +60,7 @@
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentRegistry"/>
             <argument type="service" id="logger"/>
             <tag name="kernel.reset" method="reset"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <!-- Fail-safe-Recorder + Lifecycle- und Funnel-Subscriber. -->
@@ -65,6 +68,7 @@
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\EventTracker"/>
             <argument type="service" id="request_stack"/>
             <argument type="service" id="logger"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <service id="Ruhrcoder\RcAbTesting\Subscriber\ExperimentCacheInvalidationSubscriber">
@@ -123,6 +127,7 @@
             <argument type="service" id="request_stack"/>
             <argument type="service" id="logger"/>
             <tag name="kernel.event_subscriber"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <!-- Geteilter Request-Resolver (Twig + Bridge). kernel.reset leert das Memo im Worker-Modus. -->
@@ -142,6 +147,14 @@
             <tag name="kernel.reset" method="reset"/>
         </service>
 
+        <!-- Cross-Plugin-Kontrakt: Fremd-Plugins injizieren das Interface
+             (on-invalid="null"), nicht die konkrete Klasse (Arbeitspaket AB46). Public,
+             damit Zielplugins es auch zur Laufzeit aus dem Container ziehen können;
+             die Implementierung dahinter bleibt privat. -->
+        <service id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchValueResolver"
+                 alias="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchResolver"
+                 public="true"/>
+
         <!-- Wendet Fremd-Plugin-Adapter zur Render-Zeit an (getaggte Adapter). -->
         <service id="Ruhrcoder\RcAbTesting\Subscriber\FrontendSwitchDispatcher">
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchResolver"/>
@@ -155,8 +168,10 @@
             <tag name="twig.extension"/>
         </service>
 
-        <!-- Bridge für fremde Plugins. Public, damit Zielplugins sie per on-invalid="null" optional injizieren. -->
-        <service id="Ruhrcoder\RcAbTesting\Bridge\ActiveVariantQueryImpl" public="true">
+        <!-- Bridge für fremde Plugins: öffentlich ist nur das Interface (README:
+             „public API"), nicht die Implementierung. Für die optionale Injektion
+             per on-invalid="null" genügt der Alias. -->
+        <service id="Ruhrcoder\RcAbTesting\Bridge\ActiveVariantQueryImpl">
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\RequestVariantResolver"/>
         </service>
         <service id="Ruhrcoder\RcAbTesting\Bridge\ActiveVariantQuery"
@@ -177,6 +192,7 @@
             <argument type="service" id="Shopware\Core\Content\Product\ProductDefinition"/>
             <argument type="service" id="logger"/>
             <tag name="kernel.event_subscriber"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <!-- Statistik-Mathematik (reine Services, keine I/O-Abhängigkeit). -->
@@ -212,7 +228,6 @@
 
         <!-- Aggregator, Lookup und CLI-Commands. -->
         <service id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator">
-            <argument type="service" id="rc_ab_assignment.repository"/>
             <argument type="service" id="Doctrine\DBAL\Connection"/>
         </service>
 
@@ -277,6 +292,7 @@
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\VisitorDataAnonymizer"/>
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <tag name="messenger.message_handler"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <!-- Cart-Abandonment-Scheduler (Erkennung aus rc_ab_event). -->
@@ -296,6 +312,7 @@
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <argument type="service" id="Doctrine\DBAL\Connection"/>
             <tag name="messenger.message_handler"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <service id="Ruhrcoder\RcAbTesting\ScheduledTask\ExperimentScheduleTask">
@@ -309,13 +326,20 @@
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator"/>
             <argument type="service" id="Doctrine\DBAL\Connection"/>
             <tag name="messenger.message_handler"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <!-- Storefront-Tracking-Endpunkt + Cache-Vary. -->
+        <service id="Ruhrcoder\RcAbTesting\Service\TrackRateLimiter">
+            <argument type="service" id="cache.object"/>
+        </service>
+
         <service id="Ruhrcoder\RcAbTesting\Controller\Storefront\TrackingController" public="true">
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\EventTracker"/>
             <argument type="service" id="logger"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\TrackRateLimiter"/>
             <tag name="controller.service_arguments"/>
+            <tag name="monolog.logger" channel="rc_ab_testing"/>
         </service>
 
         <service id="Ruhrcoder\RcAbTesting\Storefront\Subscriber\CacheVarySubscriber">
@@ -323,16 +347,20 @@
         </service>
 
         <!-- Admin-API-Controller (Lifecycle + Stats). -->
-        <service id="Ruhrcoder\RcAbTesting\Controller\Api\RcAbExperimentApiController" public="true">
-            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentLookup"/>
-            <argument type="service" id="rc_ab_experiment.repository"/>
+        <service id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsResponseAssembler">
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentTimeSeriesAggregator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator"/>
-            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator"/>
             <argument type="service" id="sales_channel.repository"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAbTesting\Controller\Api\RcAbExperimentApiController" public="true">
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentLookup"/>
+            <argument type="service" id="rc_ab_experiment.repository"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsResponseAssembler"/>
+            <argument type="service" id="Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator"/>
             <argument type="service" id="Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchRegistry"/>
             <tag name="controller.service_arguments"/>
         </service>
