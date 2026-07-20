@@ -34,6 +34,9 @@ final class ExportCustomerDataCommandTest extends TestCase
         self::assertCount(1, $data['assignments']);
         self::assertCount(1, $data['events']);
         self::assertSame('exp-1', $data['assignments'][0]['experimentId']);
+        // Art.-15-Vollstaendigkeit: Zuordnungskontext (Verkaufskanal, Sprache) gehoert in den Export.
+        self::assertSame('sc-1', $data['assignments'][0]['salesChannelId']);
+        self::assertSame('lang-1', $data['assignments'][0]['languageId']);
         self::assertSame('checkout.order_placed', $data['events'][0]['eventType']);
     }
 
@@ -57,6 +60,8 @@ final class ExportCustomerDataCommandTest extends TestCase
         $assignment->setVariantId('var-1');
         $assignment->setVisitorId('visitor-1');
         $assignment->setCustomerId('cust-1');
+        $assignment->setSalesChannelId('sc-1');
+        $assignment->setLanguageId('lang-1');
         $assignment->setAssignedAt(new \DateTimeImmutable('2026-07-01T10:00:00+00:00'));
         $assignment->setLastSeenAt(new \DateTimeImmutable('2026-07-02T10:00:00+00:00'));
 

@@ -1,5 +1,11 @@
 # Changelog (DE)
 
+## [1.13.1] - 2026-07-20
+
+### Datenschutz
+
+- Der Auskunfts-Export (Art. 15 DSGVO, `ExportCustomerDataCommand`) enthaelt je Zuordnung jetzt auch Verkaufskanal und Sprache — nicht nur das Geraet. Damit ist der Zuordnungskontext im Export vollstaendig.
+
 ## [1.13.0] - 2026-07-20
 
 > **Deployment:** `bin/console cache:clear` + `bin/build-administration.sh` erforderlich (Admin-JS/SCSS/Snippets geändert). Keine Migration.

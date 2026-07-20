@@ -3,6 +3,12 @@
 All notable changes to RcAbTesting are documented here. This file follows the
 [Keep a Changelog](https://keepachangelog.com/) style; versions are listed newest first.
 
+## [1.13.1] - 2026-07-20
+
+### Privacy
+
+- The subject-access export (Art. 15 GDPR, `ExportCustomerDataCommand`) now includes the sales channel and language per assignment, not just the device, making the assignment context in the export complete.
+
 ## [1.13.0] - 2026-07-20
 
 > **Deployment:** `bin/console cache:clear` and `bin/build-administration.sh` required (admin JS/SCSS/snippets changed). No migration.
