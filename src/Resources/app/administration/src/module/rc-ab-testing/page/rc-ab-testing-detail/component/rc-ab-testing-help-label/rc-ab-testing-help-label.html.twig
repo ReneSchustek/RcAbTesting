@@ -1,0 +1,15 @@
+{% block rc_ab_testing_help_label %}
+{# Tooltip und `aria-label` tragen denselben Text: der Tooltip für die Maus, das
+   Label als Name des Buttons für Screenreader. Das Icon ist ausgeblendet, damit es
+   nicht zusätzlich als Grafik angesagt wird. #}
+<span class="rc-ab-testing-detail__help-label">
+    {{ label }}
+    <button
+        type="button"
+        class="rc-ab-testing-detail__help-icon"
+        :aria-label="help"
+        v-tooltip="help">
+        <mt-icon name="regular-question-circle-s" size="12px" aria-hidden="true"></mt-icon>
+    </button>
+</span>
+{% endblock %}

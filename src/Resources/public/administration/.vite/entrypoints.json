@@ -1,0 +1,25 @@
+{
+  "base": "/bundles/rcabtesting/administration/",
+  "entryPoints": {
+    "rc-ab-testing": {
+      "css": [
+        "/bundles/rcabtesting/administration/assets/rc-ab-testing-Ddm-sr3-.css"
+      ],
+      "dynamic": [],
+      "js": [
+        "/bundles/rcabtesting/administration/assets/rc-ab-testing-CeONfGai.js"
+      ],
+      "legacy": false,
+      "preload": []
+    }
+  },
+  "legacy": false,
+  "metadatas": {},
+  "version": [
+    "7.1.0",
+    7,
+    1,
+    0
+  ],
+  "viteServer": null
+}

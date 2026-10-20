@@ -1,0 +1,284 @@
+{% block rc_ab_testing_detail %}
+<sw-page class="rc-ab-testing-detail">
+    {% block rc_ab_testing_detail_smart_bar_header %}
+    <template #smart-bar-header>
+        <h2 v-if="experiment">{{ experiment.name }}</h2>
+    </template>
+    {% endblock %}
+
+    {% block rc_ab_testing_detail_smart_bar_actions %}
+    <template #smart-bar-actions>
+        <sw-button :disabled="!canEdit || !canStart" @click="runLifecycle('start')">{{ $t('rc-ab-testing.detail.start') }}</sw-button>
+        <sw-button :disabled="!canEdit || !canPause" @click="runLifecycle('pause')">{{ $t('rc-ab-testing.detail.pause') }}</sw-button>
+        <sw-button :disabled="!canEdit || !canEnd" @click="runLifecycle('end')">{{ $t('rc-ab-testing.detail.end') }}</sw-button>
+        <sw-button :disabled="!canEdit || !canArchive" @click="runLifecycle('archive')">{{ $t('rc-ab-testing.detail.archive') }}</sw-button>
+        <sw-button variant="primary" :disabled="!canEdit" :is-loading="isSaving" @click="onSave">
+            {{ $t('rc-ab-testing.detail.save') }}
+        </sw-button>
+    </template>
+    {% endblock %}
+
+    {% block rc_ab_testing_detail_content %}
+    <template #content>
+        <sw-card-view v-if="experiment">
+            {% block rc_ab_testing_detail_card_base %}
+            <sw-card :title="$t('rc-ab-testing.detail.baseTitle')" :is-loading="isLoading">
+                {% block rc_ab_testing_detail_card_base_essentials %}
+                <sw-text-field v-model:value="experiment.name" :label="$t('rc-ab-testing.detail.name')"></sw-text-field>
+                <sw-single-select
+                    v-model:value="experiment.testType"
+                    :options="testTypeOptions"
+                    :label="$t('rc-ab-testing.detail.testType')">
+                </sw-single-select>
+                <p v-if="testTypeHint" class="rc-ab-testing-detail__field-hint">{{ testTypeHint }}</p>
+                <sw-single-select
+                    v-if="isSwitchTest"
+                    :value="selectedSwitchKey"
+                    :options="switchSelectOptions"
+                    :label="$t('rc-ab-testing.detail.switchSelect')"
+                    :help-text="$t('rc-ab-testing.detail.switchSelectHelp')"
+                    @update:value="setSelectedSwitch">
+                </sw-single-select>
+                <sw-textarea-field
+                    v-model:value="experiment.hypothesis"
+                    :label="$t('rc-ab-testing.detail.hypothesis')"
+                    :placeholder="$t('rc-ab-testing.detail.hypothesisPlaceholder')">
+                </sw-textarea-field>
+                <sw-number-field
+                    v-model:value="experiment.trafficAllocationPct"
+                    :label="$t('rc-ab-testing.detail.traffic')"
+                    :help-text="$t('rc-ab-testing.detail.trafficHelp')"
+                    :min="0"
+                    :max="100">
+                </sw-number-field>
+                {% endblock %}
+
+                {% block rc_ab_testing_detail_card_base_advanced_toggle %}
+                <sw-switch-field
+                    v-model:value="showAdvanced"
+                    :label="$t('rc-ab-testing.detail.advancedToggle')">
+                </sw-switch-field>
+                {% endblock %}
+
+                {% block rc_ab_testing_detail_card_base_advanced %}
+                <template v-if="showAdvanced">
+                    <sw-text-field
+                        v-model:value="experiment.technicalKey"
+                        :label="$t('rc-ab-testing.detail.technicalKey')"
+                        :help-text="$t('rc-ab-testing.detail.technicalKeyHelp')">
+                    </sw-text-field>
+                    <sw-number-field
+                        v-model:value="experiment.targetSignificance"
+                        :label="$t('rc-ab-testing.detail.targetSignificance')"
+                        :digits="3"
+                        :step="0.01">
+                    </sw-number-field>
+                    {% block rc_ab_testing_detail_card_base_targeting %}
+                    <sw-entity-single-select
+                        v-model:value="experiment.salesChannelId"
+                        entity="sales_channel"
+                        show-clearable-button
+                        :label="$t('rc-ab-testing.detail.salesChannel')"
+                        :help-text="$t('rc-ab-testing.detail.salesChannelHelp')">
+                    </sw-entity-single-select>
+                    <sw-entity-single-select
+                        v-model:value="experiment.ruleId"
+                        entity="rule"
+                        show-clearable-button
+                        :label="$t('rc-ab-testing.detail.rule')"
+                        :help-text="$t('rc-ab-testing.detail.ruleHelp')">
+                    </sw-entity-single-select>
+                    {% endblock %}
+                    {% block rc_ab_testing_detail_card_base_scheduling %}
+                    <sw-datepicker
+                        v-model:value="experiment.scheduledStartAt"
+                        date-type="datetime"
+                        :label="$t('rc-ab-testing.detail.scheduledStart')">
+                    </sw-datepicker>
+                    <sw-datepicker
+                        v-model:value="experiment.scheduledEndAt"
+                        date-type="datetime"
+                        :label="$t('rc-ab-testing.detail.scheduledEnd')">
+                    </sw-datepicker>
+                    {% endblock %}
+                </template>
+                {% endblock %}
+            </sw-card>
+            {% endblock %}
+
+            {% block rc_ab_testing_detail_card_variants %}
+            <sw-card :title="$t('rc-ab-testing.detail.variantsTitle')">
+                <sw-data-grid
+                    v-if="experiment.variants"
+                    :data-source="experiment.variants"
+                    :columns="variantColumns"
+                    :show-selection="false"
+                    :show-actions="true">
+                    <template #column-technicalKey="{ item }">
+                        <sw-text-field
+                            v-model:value="item.technicalKey"
+                            :aria-label="$t('rc-ab-testing.detail.variantKey')">
+                        </sw-text-field>
+                    </template>
+                    <template #column-name="{ item }">
+                        <sw-text-field
+                            v-model:value="item.name"
+                            :aria-label="$t('rc-ab-testing.detail.variantName')">
+                        </sw-text-field>
+                    </template>
+                    <template #column-weight="{ item }">
+                        <sw-number-field
+                            v-model:value="item.weight"
+                            :digits="0"
+                            :min="0"
+                            :aria-label="$t('rc-ab-testing.detail.variantWeight')">
+                        </sw-number-field>
+                    </template>
+                    <template #column-isControl="{ item }">
+                        <sw-checkbox-field
+                            v-model:value="item.isControl"
+                            :aria-label="$t('rc-ab-testing.detail.variantControl')">
+                        </sw-checkbox-field>
+                    </template>
+                    <template #column-config="{ item }">
+                        <sw-single-select
+                            v-if="isSwitchTest"
+                            :value="variantSwitchValue(item)"
+                            :options="switchValueOptions"
+                            show-clearable-button
+                            :aria-label="$t('rc-ab-testing.detail.variantValue')"
+                            :placeholder="$t('rc-ab-testing.detail.variantSwitchPlaceholder')"
+                            :help-text="$t('rc-ab-testing.detail.variantSwitchHelp')"
+                            @update:value="value => setVariantSwitchValue(item, value)">
+                        </sw-single-select>
+                        <sw-entity-single-select
+                            v-else-if="isCmsTest"
+                            entity="cms_page"
+                            :value="variantCmsPageId(item)"
+                            show-clearable-button
+                            :aria-label="$t('rc-ab-testing.detail.variantPage')"
+                            :placeholder="$t('rc-ab-testing.detail.variantCmsPagePlaceholder')"
+                            :help-text="$t('rc-ab-testing.detail.variantCmsPageHelp')"
+                            @update:value="value => setVariantCmsPageId(item, value)">
+                        </sw-entity-single-select>
+                        <sw-text-field
+                            v-else
+                            :value="variantConfigDrafts[item.id]"
+                            placeholder="{ }"
+                            :aria-label="$t('rc-ab-testing.detail.variantConfig')"
+                            :help-text="$t('rc-ab-testing.detail.variantConfigHelp')"
+                            @update:value="value => setVariantConfigDraft(item.id, value)">
+                        </sw-text-field>
+                    </template>
+                    <template #actions="{ item }">
+                        <sw-context-menu-item variant="danger" @click="removeVariant(item)">
+                            {{ $t('rc-ab-testing.detail.removeVariant') }}
+                        </sw-context-menu-item>
+                    </template>
+                </sw-data-grid>
+                <sw-button class="rc-ab-testing-detail__add-variant" @click="addVariant">
+                    {{ $t('rc-ab-testing.detail.addVariant') }}
+                </sw-button>
+            </sw-card>
+            {% endblock %}
+
+            {% block rc_ab_testing_detail_card_stats %}
+            <sw-card :title="$t('rc-ab-testing.detail.statsTitle')">
+                {% block rc_ab_testing_detail_card_stats_controls %}
+                {# Die Auswahl ändert die gespeicherte Entscheidungs-Kennzahl. Der Server
+                   rechnet erst nach dem Speichern damit. #}
+                <div class="rc-ab-testing-detail__decision">
+                    <sw-single-select
+                        v-model:value="experiment.decisionMetric"
+                        :options="decisionMetricOptions"
+                        :label="$t('rc-ab-testing.detail.decisionMetric')"
+                        :help-text="$t('rc-ab-testing.detail.decisionMetricHelp')">
+                    </sw-single-select>
+                    <sw-button :is-loading="isLoadingStats" @click="loadStats">{{ $t('rc-ab-testing.detail.refreshStats') }}</sw-button>
+                </div>
+                {% endblock %}
+
+                {# Auswertung und Verdikt werden nachgeladen — Screenreader erfahren
+                   die Änderung nur über eine Live-Region. #}
+                <div
+                    class="rc-ab-testing-detail__live"
+                    aria-live="polite"
+                    :aria-busy="isLoadingStats ? 'true' : 'false'">
+                    {% block rc_ab_testing_detail_card_stats_verdict %}
+                    <sw-alert v-if="verdict" class="rc-ab-testing-detail__verdict" :variant="verdict.variant">
+                        {{ verdict.text }}
+                    </sw-alert>
+                    {% endblock %}
+
+                    {% block rc_ab_testing_detail_card_stats_tabs %}
+                    {# Nur der aktive Tab liegt in der Tab-Reihenfolge (`tabindex` 0, sonst -1);
+                       zwischen den Tabs wechseln die Pfeiltasten über `onTabKeydown`. #}
+                    <div class="rc-ab-testing-detail__tabs" role="tablist" :aria-label="$t('rc-ab-testing.detail.statsTitle')">
+                        <button
+                            v-for="(tab, tabIndex) in statsTabs"
+                            :key="tab.key"
+                            :ref="`tab-${tab.key}`"
+                            :id="`rc-ab-tab-${tab.key}`"
+                            type="button"
+                            role="tab"
+                            class="rc-ab-testing-detail__tab"
+                            :class="{ 'is--active': activeStatsTab === tab.key }"
+                            :aria-selected="activeStatsTab === tab.key ? 'true' : 'false'"
+                            :aria-controls="`rc-ab-panel-${tab.key}`"
+                            :tabindex="activeStatsTab === tab.key ? 0 : -1"
+                            @keydown="onTabKeydown($event, tabIndex)"
+                            @click="setActiveStatsTab(tab.key)">
+                            {{ tab.label }}
+                        </button>
+                    </div>
+                    {% endblock %}
+
+                    {% block rc_ab_testing_detail_card_stats_panels %}
+                    {# Alle vier Panels bleiben gerendert und wechseln nur per `v-show`. So zeigt
+                       `aria-controls` jedes Tabs auf ein vorhandenes Element, und ein Tabwechsel
+                       baut die Auswertung nicht neu auf. #}
+                    <div
+                        v-for="tab in statsTabs"
+                        v-show="activeStatsTab === tab.key"
+                        :key="`panel-${tab.key}`"
+                        :id="`rc-ab-panel-${tab.key}`"
+                        role="tabpanel"
+                        tabindex="0"
+                        :aria-labelledby="`rc-ab-tab-${tab.key}`">
+                        <div v-if="!stats" class="rc-ab-testing-detail__placeholder">
+                            {{ $t('rc-ab-testing.detail.statsEmpty') }}
+                        </div>
+                        <template v-else>
+                            <rc-ab-testing-stats-overview
+                                v-if="tab.key === 'overview'"
+                                v-model:winner-variant-id="winnerVariantId"
+                                :stats="stats"
+                                :evaluation="evaluation"
+                                :decision-metric="currentDecisionMetric"
+                                :variant-options="variantOptions">
+                            </rc-ab-testing-stats-overview>
+                            <rc-ab-testing-stats-segments
+                                v-else-if="tab.key === 'segments'"
+                                :segments="segments">
+                            </rc-ab-testing-stats-segments>
+                            <rc-ab-testing-stats-timeseries
+                                v-else-if="tab.key === 'time'"
+                                :time-series="timeSeries"
+                                :decision-metric="currentDecisionMetric"
+                                :decision-metric-label="decisionMetricLabel">
+                            </rc-ab-testing-stats-timeseries>
+                            <rc-ab-testing-stats-funnel
+                                v-else-if="tab.key === 'funnel'"
+                                :funnel="funnel">
+                            </rc-ab-testing-stats-funnel>
+                        </template>
+                    </div>
+                    {% endblock %}
+                </div>
+            </sw-card>
+            {% endblock %}
+        </sw-card-view>
+    </template>
+    {% endblock %}
+</sw-page>
+{% endblock %}

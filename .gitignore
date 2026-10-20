@@ -1,0 +1,41 @@
+# ============================================================
+# .gitignore – RcAbTesting
+# ============================================================
+
+# Secrets / Umgebungsvariablen
+.env
+.env.local
+.env.*.local
+!.env.example
+secrets.json
+*.pfx
+*.p12
+*.key
+
+# Logs
+*.log
+/logs/
+
+# PHP / Shopware
+/vendor/
+/var/
+/node_modules/
+*.phar
+*.zip
+
+# Test-Ergebnisse
+.phpunit.result.cache
+.phpunit.cache
+/coverage/
+
+# IDE
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
+
+# Weitere lokale Arbeits- und Werkzeug-Artefakte
+coverage-snapshot.sh
+
+# composer.lock — Library-Plugins liefern keinen Lock mit
+composer.lock

@@ -1,0 +1,414 @@
+// Textfarben erfüllen 4,5:1 gegen Weiß, Grafiken und Icons 3:1 (BFSG, WCAG 2.1 AA).
+// Die Schiefergrau-Töne der Administration (#758ca3 mit 3,5:1, #94a6b8 mit 2,5:1)
+// und das helle Shopware-Blau #189eff (2,85:1) bleiben darunter und scheiden aus.
+$rc-ab-text-muted: #52667a;   // 5,9:1
+$rc-ab-accent: #0d6ebf;       // 5,2:1
+$rc-ab-border: #d1d9e0;
+
+.rc-ab-testing-detail {
+    // Nur für Screenreader: visuell entfernt, aber im Baum und vorlesbar.
+    // `display: none` wäre für Hilfsmittel unsichtbar.
+    &__visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    // Klartext-Hinweis unter einem Eingabefeld (z. B. Erklärung des Test-Typs).
+    // Der negative obere Rand zieht den Hinweis an das Feld darüber heran, das
+    // seinen eigenen Abstand nach unten mitbringt.
+    &__field-hint {
+        margin: -8px 0 16px;
+        font-size: 12.5px;
+        color: $rc-ab-text-muted;
+    }
+
+    &__decision {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+
+        .sw-single-select {
+            min-width: 260px;
+        }
+    }
+
+    // Detail-Tab-Leiste der Auswertung (reiner Ansichtswechsel in der Karte).
+    &__tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid $rc-ab-border;
+        margin-bottom: 20px;
+    }
+
+    &__tab {
+        appearance: none;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        // Legt die Unterstreichung des aktiven Tabs auf die Trennlinie der Leiste.
+        margin-bottom: -1px;
+        padding: 10px 16px;
+        font: inherit;
+        font-weight: 600;
+        color: $rc-ab-text-muted;
+        cursor: pointer;
+
+        &:hover {
+            color: #34495e;
+        }
+
+        // Der Fokus muss sichtbar sein — die Leiste ist per Pfeiltasten bedienbar.
+        &:focus-visible {
+            outline: 2px solid $rc-ab-accent;
+            outline-offset: -2px;
+        }
+
+        &.is--active {
+            color: $rc-ab-accent;
+            border-bottom-color: $rc-ab-accent;
+        }
+    }
+
+    // Kennzahl-Karten der Übersicht.
+    &__metric-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    &__metric-card {
+        border: 1px solid #d1d9e0;
+        border-radius: 6px;
+        padding: 14px;
+        background: #f9fafb;
+
+        &.is--primary {
+            border-color: #7fc2f7;
+            background: #eaf4fd;
+        }
+    }
+
+    &__metric-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: $rc-ab-text-muted;
+        margin-bottom: 6px;
+    }
+
+    &__metric-tag {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #ffffff;
+        background: $rc-ab-accent;
+        border-radius: 4px;
+        padding: 1px 6px;
+    }
+
+    &__metric-value {
+        font-size: 22px;
+        font-weight: 600;
+        color: #2b3d4f;
+    }
+
+    &__metric-uplift {
+        margin-top: 4px;
+        font-size: 13px;
+        font-weight: 600;
+
+        &.is--up {
+            color: #146c3e;
+        }
+
+        &.is--down {
+            color: #c0392b;
+        }
+
+        &.is--flat {
+            color: $rc-ab-text-muted;
+        }
+    }
+
+    &__placeholder {
+        padding: 32px;
+        text-align: center;
+        color: $rc-ab-text-muted;
+    }
+
+    &__verdict {
+        margin-bottom: 20px;
+    }
+
+    // Hilfe-Erklärung in Tabellen-Headern. Träger ist ein Button, damit die
+    // Erklärung auch per Tastatur erreichbar ist.
+    &__help-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    &__help-icon {
+        appearance: none;
+        background: none;
+        border: none;
+        padding: 0;
+        display: inline-flex;
+        color: $rc-ab-text-muted;
+        cursor: help;
+
+        &:focus-visible {
+            outline: 2px solid $rc-ab-accent;
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+    }
+
+    // Segmente-Tab.
+    &__segment-group {
+        margin-bottom: 28px;
+    }
+
+    &__segment-title {
+        font-size: 14px;
+        font-weight: 640;
+        margin: 0 0 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid $rc-ab-border;
+    }
+
+    &__segment {
+        margin-bottom: 16px;
+    }
+
+    &__segment-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+
+    &__segment-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #2b3d4f;
+    }
+
+    &__segment-size {
+        font-size: 12px;
+        color: $rc-ab-text-muted;
+    }
+
+    &__segment-table {
+        overflow-x: auto;
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            text-align: right;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e4e8ec;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        th:first-child,
+        td:first-child {
+            text-align: left;
+        }
+
+        // Nur die Kopfzeile ist gedämpft; die Zeilenköpfe (Varianten-Schlüssel)
+        // bleiben normaler Text, obwohl sie technisch `th` sind.
+        thead th {
+            color: $rc-ab-text-muted;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        tbody th {
+            font-weight: 400;
+        }
+    }
+
+    &__seg-result {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 2px 9px;
+        border-radius: 999px;
+
+        &.is--success {
+            color: #146c3e;
+            background: #e6f4ec;
+        }
+
+        &.is--error {
+            color: #c0392b;
+            background: #fbeceb;
+        }
+
+        &.is--info {
+            color: $rc-ab-text-muted;
+            background: #eef1f4;
+        }
+    }
+
+    // Zeitverlauf-Chart (Inline-SVG).
+    &__chart-caption {
+        font-size: 13px;
+        color: $rc-ab-text-muted;
+        margin: 0 0 12px;
+    }
+
+    &__chart-wrap {
+        overflow-x: auto;
+    }
+
+    &__chart {
+        width: 100%;
+        // Darunter überlappen die Datumsbeschriftungen; der Rahmen scrollt dann
+        // waagerecht.
+        min-width: 520px;
+        // Das Seitenverhältnis setzt die Vorlage aus den Maßen von `chart-geometry.js`.
+        height: auto;
+        display: block;
+    }
+
+    &__chart-grid {
+        stroke: #e4e8ec;
+        stroke-width: 1;
+    }
+
+    &__chart-axis {
+        fill: $rc-ab-text-muted;
+        font-size: 11px;
+    }
+
+    &__chart-legend {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    &__legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        color: $rc-ab-text-muted;
+    }
+
+    // Zeigt Farbe UND Strichmuster der Linie — Farbe allein trägt die
+    // Zuordnung nicht.
+    &__legend-line {
+        flex: 0 0 auto;
+        display: inline-block;
+    }
+
+    &__chart-hint {
+        font-size: 12.5px;
+        color: $rc-ab-text-muted;
+        margin: 14px 0 0;
+        padding-left: 12px;
+        border-left: 2px solid #cdd7e0;
+    }
+
+    // Funnel-Tab.
+    &__funnel {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    &__funnel-stage {
+        display: grid;
+        grid-template-columns: 170px 1fr;
+        gap: 16px;
+        align-items: center;
+        padding: 8px 0;
+
+        & + & {
+            border-top: 1px dashed #e4e8ec;
+        }
+    }
+
+    &__funnel-stage-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #2b3d4f;
+    }
+
+    &__funnel-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    &__funnel-bar {
+        display: grid;
+        grid-template-columns: 92px 1fr 150px;
+        gap: 12px;
+        align-items: center;
+    }
+
+    &__funnel-who {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        color: $rc-ab-text-muted;
+    }
+
+    &__funnel-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex: 0 0 auto;
+    }
+
+    &__funnel-track {
+        height: 20px;
+        background: #f4f6f8;
+        border: 1px solid #e4e8ec;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    &__funnel-fill {
+        display: block;
+        height: 100%;
+        // Auch ein Anteil nahe null bleibt als Strich sichtbar.
+        min-width: 2px;
+    }
+
+    &__funnel-num {
+        font-size: 12px;
+        color: #2b3d4f;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+
+        small {
+            color: $rc-ab-text-muted;
+            margin-left: 4px;
+        }
+    }
+}

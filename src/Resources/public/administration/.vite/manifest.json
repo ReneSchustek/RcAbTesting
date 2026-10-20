@@ -1,0 +1,11 @@
+{
+  "main.js": {
+    "file": "assets/rc-ab-testing-CeONfGai.js",
+    "name": "rc-ab-testing",
+    "src": "main.js",
+    "isEntry": true,
+    "css": [
+      "assets/rc-ab-testing-Ddm-sr3-.css"
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+includes:
+    - vendor/shopwarelabs/phpstan-shopware/rules.neon
+
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - vendor
+    bootstrapFiles:
+        - vendor/autoload.php
+    ignoreErrors:
+        # Kein fehlender Schutz. Der Erzeugungsaufruf trägt die Kennzeichnung nicht, weil sie
+        # unmittelbar danach über `withSecure()` gesetzt wird — aus `$request->isSecure()`. Fest
+        # auf `true` gesetzt käme der Cookie über eine ungesicherte Verbindung nie an.
+        -
+            message: '#Symfony Cookie created without explicit secure flag#'
+            path: src/Service/VisitorIdResolver.php
+
+        # Das Feld ist ein Wahrheitswert, und sein Leser heißt `isControl()` — die übliche Form
+        # dafür. Die Regel sucht nur nach `getIsControl()`.
+        -
+            message: '#The field "isControl" in the definition .* is protected, but has no getter#'
+            path: src/Core/Content/AbVariant/AbVariantEntity.php
+
+        # Konsolenbefehle und zeitgesteuerte Läufe haben keinen angemeldeten Nutzer, aus dem sich
+        # ein Kontext ableiten ließe. Genau dafür gibt es den Standardkontext.
+        -
+            message: '#Do not use Shopware\\Core\\Framework\\Context::createDefaultContext#'
+            paths:
+                - src/Command/*
+                - src/ScheduledTask/*
+
+        # Der Empfänger baut den Cache-Schlüssel und fragt dafür die laufenden Versuche ab — eine
+        # gleiche Angabe für alle Besucher. Zu diesem Zeitpunkt ist noch kein Verkaufskanal-Kontext
+        # aufgelöst, aus dem sich einer ableiten ließe.
+        -
+            message: '#Do not use Shopware\\Core\\Framework\\Context::createDefaultContext#'
+            path: src/Storefront/Subscriber/HttpCacheKeySubscriber.php
+
+        # In Tests gibt es keinen Aufrufer. Ein aufgebauter Nutzerkontext täuschte dort eine
+        # Abhängigkeit vor, die der Test gar nicht hat.
+        -
+            message: '#Do not use Shopware\\Core\\Framework\\Context::createDefaultContext#'
+            path: tests/*
+
+        # Die Antwort ist hier ein Prüfgegenstand, kein Ergebnis: Geprüft wird, was der Empfänger
+        # an ihr verändert — Kopfzeilen und Cookies. Ein Rumpf wäre dafür ohne Bedeutung.
+        -
+            message: '#Response with empty body#'
+            paths:
+                - tests/Unit/Service/VisitorIdResolverTest.php
+                - tests/Unit/Storefront/Subscriber/CacheVarySubscriberTest.php
+                - tests/Unit/Subscriber/KernelResponseSubscriberTest.php

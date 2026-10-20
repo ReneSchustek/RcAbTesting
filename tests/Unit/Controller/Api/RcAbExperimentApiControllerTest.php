@@ -1,0 +1,379 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ruhrcoder\RcAbTesting\Tests\Unit\Controller\Api;
+
+use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\TestCase;
+use Ruhrcoder\RcAbTesting\Controller\Api\RcAbExperimentApiController;
+use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentCollection;
+use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentEntity;
+use Ruhrcoder\RcAbTesting\Core\Content\AbExperiment\AbExperimentStatus;
+use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantCollection;
+use Ruhrcoder\RcAbTesting\Core\Content\AbVariant\AbVariantEntity;
+use Ruhrcoder\RcAbTesting\Service\ExperimentIntegrityValidator;
+use Ruhrcoder\RcAbTesting\Service\ExperimentLookup;
+use Ruhrcoder\RcAbTesting\Service\FrontendSwitch\CheckoutLayoutSwitch;
+use Ruhrcoder\RcAbTesting\Service\FrontendSwitch\FrontendSwitchRegistry;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentEvaluator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentFunnelAggregator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentSegmentAggregator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsAggregator;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentStatsResponseAssembler;
+use Ruhrcoder\RcAbTesting\Service\Stats\ExperimentTimeSeriesAggregator;
+use Ruhrcoder\RcAbTesting\Service\Stats\NormalDistribution;
+use Ruhrcoder\RcAbTesting\Service\Stats\SampleSizeCalculator;
+use Ruhrcoder\RcAbTesting\Service\Stats\StatisticsCalculator;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenContainerEvent;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Prüft die Admin-API für Auswertung und Lebenszyklus eines Experiments. Jeder abgelehnte
+ * Übergang muss vor dem Schreiben enden: Ein Experiment, das ohne Kontrolle oder mit
+ * falscher Gewichtssumme startet, verteilt Besucher falsch, und ein fremder Gewinner
+ * zeigte im Admin auf eine Variante, die es im Experiment nicht gibt.
+ */
+final class RcAbExperimentApiControllerTest extends TestCase
+{
+    private const EXPERIMENT_ID = '0191aaaabbbbccccddddeeeeffff0001';
+    private const VARIANT_A = '0191aaaabbbbccccddddeeeeffff000a';
+    private const VARIANT_B = '0191aaaabbbbccccddddeeeeffff000b';
+
+    public function testStatsReturnsVariantData(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::RUNNING), $captured);
+
+        $response = $controller->stats(self::EXPERIMENT_ID, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decode($response->getContent());
+        self::assertSame(self::EXPERIMENT_ID, $payload['experimentId']);
+        self::assertCount(2, $payload['variants']);
+        self::assertSame('a', $payload['variants'][0]['technicalKey']);
+        self::assertSame(100, $payload['variants'][0]['assignments']);
+        self::assertSame(5, $payload['variants'][0]['conversions']);
+
+        self::assertArrayHasKey('evaluation', $payload);
+        self::assertSame('a', $payload['evaluation']['controlKey']);
+        self::assertSame(0.95, $payload['evaluation']['confidenceLevel']);
+        self::assertCount(1, $payload['evaluation']['comparisons']);
+        self::assertSame('b', $payload['evaluation']['comparisons'][0]['variantKey']);
+    }
+
+    public function testFrontendSwitchesListsRegisteredSwitches(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::RUNNING), $captured);
+
+        $response = $controller->frontendSwitches();
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = $this->decode($response->getContent());
+        self::assertCount(1, $payload['switches']);
+        self::assertSame(CheckoutLayoutSwitch::KEY, $payload['switches'][0]['key']);
+        // Die API liefert Snippet-Schlüssel; übersetzt wird erst in der Administration.
+        self::assertSame('rc-ab-testing.switch.checkoutLayout.label', $payload['switches'][0]['label']);
+        self::assertSame(CheckoutLayoutSwitch::ONE_PAGE, $payload['switches'][0]['options'][0]['value']);
+    }
+
+    public function testStatsNotFound(): void
+    {
+        $captured = null;
+        $controller = $this->controller(null, $captured);
+
+        $response = $controller->stats('fehlt', Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+    }
+
+    public function testStartSetsRunning(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::DRAFT), $captured);
+
+        $response = $controller->start(self::EXPERIMENT_ID, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertIsArray($captured);
+        self::assertSame(AbExperimentStatus::RUNNING, $captured[0]['status']);
+        self::assertArrayHasKey('startedAt', $captured[0]);
+    }
+
+    public function testStartRejectsInsufficientVariants(): void
+    {
+        $captured = null;
+        $experiment = $this->experiment(AbExperimentStatus::DRAFT);
+        $experiment->setVariants(new AbVariantCollection([$this->variant(self::VARIANT_A, 'a', 100, true)]));
+        $controller = $this->controller($experiment, $captured);
+
+        $response = $controller->start(self::EXPERIMENT_ID, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertNull($captured);
+    }
+
+    public function testStartRejectsWrongWeightSum(): void
+    {
+        $captured = null;
+        $experiment = $this->experiment(AbExperimentStatus::DRAFT);
+        // 60 + 60 = 120: Die Gewichte müssen sich auf 100 summieren.
+        $experiment->setVariants(new AbVariantCollection([
+            $this->variant(self::VARIANT_A, 'a', 60, true),
+            $this->variant(self::VARIANT_B, 'b', 60, false),
+        ]));
+        $controller = $this->controller($experiment, $captured);
+
+        $response = $controller->start(self::EXPERIMENT_ID, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertNull($captured);
+    }
+
+    public function testStartRejectsMissingControl(): void
+    {
+        $captured = null;
+        $experiment = $this->experiment(AbExperimentStatus::DRAFT);
+        $experiment->setVariants(new AbVariantCollection([
+            $this->variant(self::VARIANT_A, 'a', 50, false),
+            $this->variant(self::VARIANT_B, 'b', 50, false),
+        ]));
+        $controller = $this->controller($experiment, $captured);
+
+        $response = $controller->start(self::EXPERIMENT_ID, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertNull($captured);
+    }
+
+    public function testPauseRequiresRunning(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::DRAFT), $captured);
+
+        $response = $controller->pause(self::EXPERIMENT_ID, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        self::assertNull($captured);
+    }
+
+    public function testEndSetsDone(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::RUNNING), $captured);
+
+        $response = $controller->end(self::EXPERIMENT_ID, new Request(), Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertIsArray($captured);
+        self::assertSame(AbExperimentStatus::DONE, $captured[0]['status']);
+        self::assertArrayHasKey('endedAt', $captured[0]);
+        self::assertArrayNotHasKey('winnerVariantId', $captured[0]);
+    }
+
+    /**
+     * Beenden geht nur aus „läuft“ und „pausiert“; aus jedem anderen Zustand antwortet die API mit 409 und schreibt
+     * nichts. Ein beendetes Experiment bekäme sonst ein neues Enddatum, ein Entwurf stünde als beendet da.
+     */
+    public function testEndRequiresRunningOrPaused(): void
+    {
+        foreach ([AbExperimentStatus::DRAFT, AbExperimentStatus::DONE, AbExperimentStatus::ARCHIVED] as $status) {
+            $captured = null;
+            $controller = $this->controller($this->experiment($status), $captured);
+
+            $response = $controller->end(self::EXPERIMENT_ID, new Request(), Context::createDefaultContext());
+
+            self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode(), $status);
+            self::assertNull($captured, $status);
+        }
+    }
+
+    public function testEndWorksFromPause(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::PAUSED), $captured);
+
+        $response = $controller->end(self::EXPERIMENT_ID, new Request(), Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertIsArray($captured);
+        self::assertSame(AbExperimentStatus::DONE, $captured[0]['status']);
+    }
+
+    public function testEndSetsWinnerVariant(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::RUNNING), $captured);
+
+        $request = new Request([], [], [], [], [], [], (string) json_encode(['winnerVariantId' => self::VARIANT_B]));
+        $response = $controller->end(self::EXPERIMENT_ID, $request, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertIsArray($captured);
+        self::assertSame(self::VARIANT_B, $captured[0]['winnerVariantId']);
+    }
+
+    public function testEndRejectsForeignWinnerVariant(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::RUNNING), $captured);
+
+        $request = new Request([], [], [], [], [], [], (string) json_encode(['winnerVariantId' => 'fremde-variante']));
+        $response = $controller->end(self::EXPERIMENT_ID, $request, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertNull($captured);
+    }
+
+    public function testArchiveRequiresDone(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::RUNNING), $captured);
+
+        $response = $controller->archive(self::EXPERIMENT_ID, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        self::assertNull($captured);
+    }
+
+    public function testArchiveSetsArchived(): void
+    {
+        $captured = null;
+        $controller = $this->controller($this->experiment(AbExperimentStatus::DONE), $captured);
+
+        $response = $controller->archive(self::EXPERIMENT_ID, Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertIsArray($captured);
+        self::assertSame(AbExperimentStatus::ARCHIVED, $captured[0]['status']);
+    }
+
+    /**
+     * @param list<array<string, mixed>>|null $captured
+     */
+    private function controller(?AbExperimentEntity $experiment, ?array &$captured): RcAbExperimentApiController
+    {
+        $searchResult = $this->createStub(EntitySearchResult::class);
+        $searchResult->method('getEntities')->willReturn(
+            new AbExperimentCollection(
+                $experiment === null ? [] : [$experiment]
+            )
+        );
+
+        $experimentRepository = $this->createMock(EntityRepository::class);
+        $experimentRepository->method('search')->willReturn($searchResult);
+        $experimentRepository->method('update')->willReturnCallback(function (array $payload) use (&$captured): EntityWrittenContainerEvent {
+            $captured = $payload;
+
+            return $this->createStub(EntityWrittenContainerEvent::class);
+        });
+
+        $normal = new NormalDistribution();
+
+        // Runde Zahlen, die sich in der Antwort eindeutig wiederfinden lassen.
+        $assembler = new ExperimentStatsResponseAssembler(
+            new ExperimentStatsAggregator($this->statsConnection(assignments: 100, conversions: 5)),
+            new ExperimentSegmentAggregator($this->connection()),
+            new ExperimentTimeSeriesAggregator($this->connection()),
+            new ExperimentFunnelAggregator($this->connection()),
+            new ExperimentEvaluator(new StatisticsCalculator($normal), new SampleSizeCalculator($normal)),
+            $this->createMock(EntityRepository::class),
+        );
+
+        return new RcAbExperimentApiController(
+            new ExperimentLookup($experimentRepository),
+            $experimentRepository,
+            $assembler,
+            new ExperimentIntegrityValidator(),
+            new FrontendSwitchRegistry([new CheckoutLayoutSwitch()]),
+        );
+    }
+
+    /**
+     * Liefert dem Stats-Aggregator seine zwei gruppierten Abfragen: Zuordnungen je
+     * Variante und Conversion-Kennzahlen je Variante.
+     */
+    private function statsConnection(int $assignments, int $conversions): Connection
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchAllAssociative')->willReturnCallback(
+            static function (string $sql) use ($assignments, $conversions): array {
+                if (str_contains($sql, 'rc_ab_assignment')) {
+                    return [
+                        ['variant_key' => self::VARIANT_A, 'row_count' => (string) $assignments],
+                        ['variant_key' => self::VARIANT_B, 'row_count' => (string) $assignments],
+                    ];
+                }
+
+                $totals = static fn (string $variantId): array => [
+                    'variant_key' => $variantId,
+                    'conversions' => (string) $conversions,
+                    'orders' => (string) $conversions,
+                    'revenue' => '0',
+                    'revenue_sum_sq' => '0',
+                ];
+
+                return [$totals(self::VARIANT_A), $totals(self::VARIANT_B)];
+            },
+        );
+
+        return $connection;
+    }
+
+    /**
+     * Segment-, Zeitverlauf- und Funnel-Aggregator prüfen eigene Tests; hier bekommen sie
+     * eine Verbindung ohne Zeilen.
+     */
+    private function connection(): Connection
+    {
+        return $this->createMock(Connection::class);
+    }
+
+    private function experiment(string $status): AbExperimentEntity
+    {
+        $experiment = new AbExperimentEntity();
+        $experiment->setId(self::EXPERIMENT_ID);
+        $experiment->setTechnicalKey('checkout');
+        $experiment->setName('Checkout');
+        $experiment->setStatus($status);
+        $experiment->setTestType('twig');
+        $experiment->setTrafficAllocationPct(100);
+        $experiment->setTargetSignificance(0.95);
+        $experiment->setVariants(new AbVariantCollection([
+            $this->variant(self::VARIANT_A, 'a', 50, true),
+            $this->variant(self::VARIANT_B, 'b', 50, false),
+        ]));
+
+        return $experiment;
+    }
+
+    private function variant(string $id, string $key, int $weight, bool $isControl): AbVariantEntity
+    {
+        $variant = new AbVariantEntity();
+        $variant->setId($id);
+        $variant->setTechnicalKey($key);
+        $variant->setName(strtoupper($key));
+        $variant->setWeight($weight);
+        $variant->setIsControl($isControl);
+
+        return $variant;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decode(string|false $content): array
+    {
+        self::assertIsString($content);
+        $decoded = json_decode($content, true);
+        self::assertIsArray($decoded);
+
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
+    }
+}
