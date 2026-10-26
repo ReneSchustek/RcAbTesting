@@ -103,7 +103,7 @@ Geprüft wird mit PHP CS Fixer (PSR-12), PHPStan Level 8, PHPUnit und `composer 
 
 ## Lizenz
 
-MIT, siehe [LICENSE](LICENSE).
+Proprietär – siehe [composer.json](composer.json).
 
 ---
 

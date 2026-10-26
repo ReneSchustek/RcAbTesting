@@ -3,7 +3,7 @@
     "description": "A/B-Tests für Shopware: Twig-/Theme-/Feature-Flag- sowie No-Code-Varianten (CMS-Seiten-Vergleich, Frontend-Schalter) mit Sticky-Bucketing, Funnel-Tracking und statistischer Auswertung.",
     "version": "1.19.0",
     "type": "shopware-platform-plugin",
-    "license": "MIT",
+    "license": "proprietary",
     "authors": [
         {
             "name": "Ruhrcoder",
